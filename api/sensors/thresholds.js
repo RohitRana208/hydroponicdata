@@ -1,5 +1,5 @@
-// api/sensors/thresholds.js — Vercel Serverless Function
-import mongoose from 'mongoose'
+// api/sensors/thresholds.js — CommonJS Vercel Serverless Function
+const mongoose = require('mongoose')
 
 let isConnected = false
 const connectDB = async () => {
@@ -14,10 +14,10 @@ const getThresholdModel = () => {
     { _id: { type: String, default: 'global' }, thresholds: Object },
     { timestamps: true }
   )
-  return mongoose.models?.ThresholdSetting || mongoose.model('ThresholdSetting', thresholdSchema)
+  return mongoose.models.ThresholdSetting || mongoose.model('ThresholdSetting', thresholdSchema)
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')

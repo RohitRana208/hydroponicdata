@@ -1,5 +1,5 @@
-// api/sensors/history.js — Vercel Serverless Function
-import mongoose from 'mongoose'
+// api/sensors/history.js — CommonJS Vercel Serverless Function
+const mongoose = require('mongoose')
 
 let isConnected = false
 const connectDB = async () => {
@@ -14,10 +14,10 @@ const getSensorModel = () => {
     { ph: Number, tds: Number, waterTemp: Number, airTemp: Number, humidity: Number, waterLevel: Number },
     { timestamps: true }
   )
-  return mongoose.models?.SensorReading || mongoose.model('SensorReading', sensorReadingSchema)
+  return mongoose.models.SensorReading || mongoose.model('SensorReading', sensorReadingSchema)
 }
 
-export default async function handler(req, res) {
+module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
