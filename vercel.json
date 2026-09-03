@@ -2,6 +2,10 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
+    { "source": "/api/sensors/data", "destination": "/api/sensors/data.cjs" },
+    { "source": "/api/sensors/latest", "destination": "/api/sensors/latest.cjs" },
+    { "source": "/api/sensors/history", "destination": "/api/sensors/history.cjs" },
+    { "source": "/api/sensors/thresholds", "destination": "/api/sensors/thresholds.cjs" },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
