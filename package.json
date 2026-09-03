@@ -13,7 +13,10 @@
     "react-dom": "^18.3.1",
     "recharts": "^2.12.7",
     "lucide-react": "^0.447.0",
-    "axios": "^1.7.7"
+    "axios": "^1.7.7",
+    "express": "^4.19.2",
+    "mongoose": "^8.6.3",
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "@types/react": "^18.3.5",
