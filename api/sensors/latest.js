@@ -14,7 +14,7 @@ let isConnected = false
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) return
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
-  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 })
+  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
   isConnected = db.connections[0].readyState === 1
 }
 

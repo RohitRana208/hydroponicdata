@@ -14,7 +14,7 @@ let isConnected = false
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) return
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
-  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 })
+  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
   isConnected = db.connections[0].readyState === 1
 }
 
@@ -26,7 +26,11 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
 
   try {
-    await connectDB()
+    try {
+      await connectDB()
+    } catch (dbErr) {
+      return res.status(500).json({ error: 'MongoDB Atlas connection failed', details: dbErr.message })
+    }
     const limit = Math.min(parseInt(req.query.limit) || 30, 200)
     const data = await SensorReading.find().sort({ createdAt: -1 }).limit(limit).lean()
     return res.status(200).json(data.reverse())

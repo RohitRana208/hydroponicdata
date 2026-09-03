@@ -1,4 +1,4 @@
-// api/sensors/data.js — Native Vercel Function (ES Modules)
+// api/sensors/data.js — Vercel Serverless Function (ES Modules)
 import mongoose from 'mongoose'
 
 const sensorReadingSchema = new mongoose.Schema(
@@ -19,15 +19,11 @@ let isConnected = false
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) return
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
-  const db = await mongoose.connect(uri, {
-    serverSelectionTimeoutMS: 5000,
-    connectTimeoutMS: 5000,
-  })
+  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
   isConnected = db.connections[0].readyState === 1
 }
 
 export default async function handler(req, res) {
-  // Always set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -41,16 +37,11 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Attempt DB connection safely
     try {
       await connectDB()
     } catch (dbErr) {
       console.error('[MongoDB Error]', dbErr.message)
-      return res.status(500).json({
-        error: 'MongoDB Atlas connection failed',
-        details: dbErr.message,
-        hint: 'Please ensure 0.0.0.0/0 is added in MongoDB Atlas Network Access IP Whitelist.'
-      })
+      return res.status(500).json({ error: 'MongoDB Atlas connection failed', details: dbErr.message })
     }
 
     let body = req.body
