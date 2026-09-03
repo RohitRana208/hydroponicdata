@@ -1,27 +1,13 @@
-// api/sensors/data.js — CommonJS Vercel Serverless Function
-const mongoose = require('mongoose')
+// api/sensors/data.js — Native MongoDB Driver for Vercel Serverless
+const { MongoClient } = require('mongodb')
 
-let isConnected = false
-const connectDB = async () => {
-  if (isConnected && mongoose.connection.readyState === 1) return
+let cachedClient = null
+const getDb = async () => {
+  if (cachedClient) return cachedClient.db('hydrocore')
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
-  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
-  isConnected = db.connections[0].readyState === 1
-}
-
-const getSensorModel = () => {
-  const sensorReadingSchema = new mongoose.Schema(
-    {
-      ph:         { type: Number, required: true, default: 7.0 },
-      tds:        { type: Number, required: true, default: 300 },
-      waterTemp:  { type: Number, required: true, default: 25.0 },
-      airTemp:    { type: Number, required: true, default: 28.0 },
-      humidity:   { type: Number, required: true, default: 60 },
-      waterLevel: { type: Number, required: true, default: 15.0 },
-    },
-    { timestamps: true }
-  )
-  return mongoose.models.SensorReading || mongoose.model('SensorReading', sensorReadingSchema)
+  cachedClient = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 })
+  await cachedClient.connect()
+  return cachedClient.db('hydrocore')
 }
 
 module.exports = async (req, res) => {
@@ -38,14 +24,13 @@ module.exports = async (req, res) => {
   }
 
   try {
+    let db
     try {
-      await connectDB()
+      db = await getDb()
     } catch (dbErr) {
-      console.error('[MongoDB Error]', dbErr.message)
-      return res.status(500).json({ error: 'MongoDB Atlas connection failed', details: dbErr.message })
+      console.error('[MongoDB Atlas Error]', dbErr.message)
+      return res.status(500).json({ error: 'MongoDB Atlas Connection Failed', details: dbErr.message })
     }
-
-    const SensorReading = getSensorModel()
 
     let body = req.body
     if (typeof body === 'string') {
@@ -53,27 +38,27 @@ module.exports = async (req, res) => {
     }
     body = body || {}
 
-    const { ph, tds, waterTemp, airTemp, humidity, waterLevel } = body
+    const doc = {
+      ph:         Number(body.ph ?? 7.0),
+      tds:        Number(body.tds ?? 300),
+      waterTemp:  Number(body.waterTemp ?? 25.0),
+      airTemp:    Number(body.airTemp ?? 28.0),
+      humidity:   Number(body.humidity ?? 60),
+      waterLevel: Number(body.waterLevel ?? 15.0),
+      createdAt:  new Date(),
+      updatedAt:  new Date(),
+    }
 
-    const reading = new SensorReading({
-      ph:         ph !== undefined && ph !== null ? Number(ph) : 7.0,
-      tds:        tds !== undefined && tds !== null ? Number(tds) : 300,
-      waterTemp:  waterTemp !== undefined && waterTemp !== null ? Number(waterTemp) : 25.0,
-      airTemp:    airTemp !== undefined && airTemp !== null ? Number(airTemp) : 28.0,
-      humidity:   humidity !== undefined && humidity !== null ? Number(humidity) : 60,
-      waterLevel: waterLevel !== undefined && waterLevel !== null ? Number(waterLevel) : 15.0,
-    })
-
-    await reading.save()
-    console.log(`[Vercel API] Saved sensor reading. TDS: ${reading.tds}`)
+    const collection = db.collection('sensorreadings')
+    const result = await collection.insertOne(doc)
 
     return res.status(201).json({
       success: true,
-      id: reading._id,
+      id: result.insertedId,
       message: 'Data saved successfully to MongoDB Atlas',
     })
   } catch (err) {
-    console.error('[Vercel API Error]', err)
+    console.error('[Vercel Function Error]', err)
     return res.status(500).json({ error: 'Internal Server Error', details: err.message })
   }
 }

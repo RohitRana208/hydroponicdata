@@ -1,20 +1,13 @@
-// api/sensors/thresholds.js — CommonJS Vercel Serverless Function
-const mongoose = require('mongoose')
+// api/sensors/thresholds.js — Native MongoDB Driver for Vercel Serverless
+const { MongoClient } = require('mongodb')
 
-let isConnected = false
-const connectDB = async () => {
-  if (isConnected && mongoose.connection.readyState === 1) return
+let cachedClient = null
+const getDb = async () => {
+  if (cachedClient) return cachedClient.db('hydrocore')
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
-  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
-  isConnected = db.connections[0].readyState === 1
-}
-
-const getThresholdModel = () => {
-  const thresholdSchema = new mongoose.Schema(
-    { _id: { type: String, default: 'global' }, thresholds: Object },
-    { timestamps: true }
-  )
-  return mongoose.models.ThresholdSetting || mongoose.model('ThresholdSetting', thresholdSchema)
+  cachedClient = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 })
+  await cachedClient.connect()
+  return cachedClient.db('hydrocore')
 }
 
 module.exports = async (req, res) => {
@@ -25,16 +18,11 @@ module.exports = async (req, res) => {
   if (req.method === 'OPTIONS') return res.status(200).end()
 
   try {
-    try {
-      await connectDB()
-    } catch (dbErr) {
-      return res.status(500).json({ error: 'MongoDB Atlas connection failed', details: dbErr.message })
-    }
-
-    const ThresholdSetting = getThresholdModel()
+    const db = await getDb()
+    const collection = db.collection('thresholdsettings')
 
     if (req.method === 'GET') {
-      const doc = await ThresholdSetting.findById('global').lean()
+      const doc = await collection.findOne({ _id: 'global' })
       if (!doc) {
         return res.status(200).json({
           thresholds: {
@@ -59,10 +47,10 @@ module.exports = async (req, res) => {
 
       const { thresholds } = body
       if (!thresholds) return res.status(400).json({ error: 'thresholds field required' })
-      await ThresholdSetting.findByIdAndUpdate(
-        'global',
-        { thresholds },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+      await collection.updateOne(
+        { _id: 'global' },
+        { $set: { thresholds, updatedAt: new Date() } },
+        { upsert: true }
       )
       return res.status(200).json({ success: true, message: 'Thresholds saved' })
     }
