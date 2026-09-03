@@ -7,7 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { fetchLatestSensorData } from '../api/sensorApi'
 
-const POLL_INTERVAL_MS = 3000
+const POLL_INTERVAL_MS = 2000
 const HISTORY_LENGTH   = 30
 
 // ─── Threshold alert rules ────────────────────────────────────────────────────
@@ -82,7 +82,9 @@ export const useSensorData = () => {
       const entry = toChartEntry(data)
 
       setHistory(prev => {
-        if (!isNew && prev.length === HISTORY_LENGTH) return prev   // no change
+        const last = prev[prev.length - 1]
+        // Naya _id ho ya latest values alag ho to update karo
+        if (!isNew && last && last.tds === entry.tds && last.ph === entry.ph) return prev
         return [...prev.slice(1 - HISTORY_LENGTH), entry]
       })
 
@@ -129,7 +131,7 @@ export const useSensorData = () => {
     loadHistory()
   }, [addLog])
 
-  // ── Poll every 3 seconds ───────────────────────────────────────────────────
+  // ── Poll every 2 seconds ───────────────────────────────────────────────────
   useEffect(() => {
     const interval = setInterval(tick, POLL_INTERVAL_MS)
     return () => clearInterval(interval)
