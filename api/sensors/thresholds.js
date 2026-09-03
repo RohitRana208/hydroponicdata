@@ -1,6 +1,15 @@
-// api/sensors/thresholds.js — Vercel Serverless Function (ES Modules)
+// api/sensors/thresholds.js — Self-contained Vercel Serverless Function
 import mongoose from 'mongoose'
-import ThresholdSetting from '../../server/models/ThresholdSetting.js'
+
+const thresholdSchema = new mongoose.Schema(
+  {
+    _id: { type: String, default: 'global' },
+    thresholds: Object,
+  },
+  { timestamps: true }
+)
+
+const ThresholdSetting = mongoose.models.ThresholdSetting || mongoose.model('ThresholdSetting', thresholdSchema)
 
 let isConnected = false
 const connectDB = async () => {
