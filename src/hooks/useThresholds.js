@@ -8,7 +8,7 @@
 import { useState, useCallback } from 'react'
 import axios from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined ? import.meta.env.VITE_API_BASE_URL : ''
 
 export const DEFAULT_THRESHOLDS = {
   ph:         { min: 6.5,  max: 7.5,  unit: 'pH',  label: 'pH Level',         enabled: true },

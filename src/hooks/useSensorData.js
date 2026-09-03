@@ -105,7 +105,7 @@ export const useSensorData = () => {
       try {
         // /api/sensors/history se last 30 readings fetch karo
         const { default: axios } = await import('axios')
-        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001'
+        const base = import.meta.env.VITE_API_BASE_URL !== undefined ? import.meta.env.VITE_API_BASE_URL : ''
         const res  = await axios.get(`${base}/api/sensors/history?limit=${HISTORY_LENGTH}`)
         const docs = res.data
 
