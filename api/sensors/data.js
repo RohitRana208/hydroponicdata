@@ -1,5 +1,5 @@
-// api/sensors/data.js — Native Vercel Function for ESP32 POST requests
-const mongoose = require('mongoose')
+// api/sensors/data.js — Vercel Serverless Function (ES Modules)
+import mongoose from 'mongoose'
 
 const sensorReadingSchema = new mongoose.Schema(
   {
@@ -19,11 +19,11 @@ let isConnected = false
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) return
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
-  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
+  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 })
   isConnected = db.connections[0].readyState === 1
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
@@ -34,24 +34,31 @@ module.exports = async (req, res) => {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed. Use POST for sensor data.' })
+    return res.status(405).json({ error: 'Method Not Allowed. Use POST.' })
   }
 
   try {
     await connectDB()
-    const { ph, tds, waterTemp, airTemp, humidity, waterLevel } = req.body || {}
+
+    let body = req.body
+    if (typeof body === 'string') {
+      try { body = JSON.parse(body) } catch (_) {}
+    }
+    body = body || {}
+
+    const { ph, tds, waterTemp, airTemp, humidity, waterLevel } = body
 
     const reading = new SensorReading({
-      ph:         ph !== undefined && ph !== null ? ph : 7.0,
-      tds:        tds !== undefined && tds !== null ? tds : 300,
-      waterTemp:  waterTemp !== undefined && waterTemp !== null ? waterTemp : 25.0,
-      airTemp:    airTemp !== undefined && airTemp !== null ? airTemp : 28.0,
-      humidity:   humidity !== undefined && humidity !== null ? humidity : 60,
-      waterLevel: waterLevel !== undefined && waterLevel !== null ? waterLevel : 15.0,
+      ph:         ph !== undefined && ph !== null ? Number(ph) : 7.0,
+      tds:        tds !== undefined && tds !== null ? Number(tds) : 300,
+      waterTemp:  waterTemp !== undefined && waterTemp !== null ? Number(waterTemp) : 25.0,
+      airTemp:    airTemp !== undefined && airTemp !== null ? Number(airTemp) : 28.0,
+      humidity:   humidity !== undefined && humidity !== null ? Number(humidity) : 60,
+      waterLevel: waterLevel !== undefined && waterLevel !== null ? Number(waterLevel) : 15.0,
     })
 
     await reading.save()
-    console.log(`[Vercel Function] Saved sensor reading. TDS: ${reading.tds}`)
+    console.log(`[Vercel API] Saved sensor reading. TDS: ${reading.tds}`)
 
     return res.status(201).json({
       success: true,
@@ -59,7 +66,7 @@ module.exports = async (req, res) => {
       message: 'Data saved successfully to MongoDB Atlas',
     })
   } catch (err) {
-    console.error('[Vercel Error]', err)
+    console.error('[Vercel API Error]', err)
     return res.status(500).json({ error: 'Internal Server Error', details: err.message })
   }
 }

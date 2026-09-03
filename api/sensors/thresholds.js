@@ -1,5 +1,5 @@
-// api/sensors/thresholds.js — Native Vercel Function for Thresholds
-const mongoose = require('mongoose')
+// api/sensors/thresholds.js — Vercel Serverless Function (ES Modules)
+import mongoose from 'mongoose'
 
 const thresholdSchema = new mongoose.Schema(
   {
@@ -15,11 +15,11 @@ let isConnected = false
 const connectDB = async () => {
   if (isConnected && mongoose.connection.readyState === 1) return
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
-  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
+  const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 8000 })
   isConnected = db.connections[0].readyState === 1
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -47,7 +47,13 @@ module.exports = async (req, res) => {
     }
 
     if (req.method === 'POST') {
-      const { thresholds } = req.body || {}
+      let body = req.body
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body) } catch (_) {}
+      }
+      body = body || {}
+
+      const { thresholds } = body
       if (!thresholds) return res.status(400).json({ error: 'thresholds field required' })
       await ThresholdSetting.findByIdAndUpdate(
         'global',
