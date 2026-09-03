@@ -1,5 +1,5 @@
-// api/sensors/data.js — Native MongoDB Driver for Vercel Serverless
-const { MongoClient } = require('mongodb')
+// api/sensors/data.js — Native Vercel Function (ES Modules)
+import { MongoClient } from 'mongodb'
 
 let cachedClient = null
 const getDb = async () => {
@@ -10,7 +10,7 @@ const getDb = async () => {
   return cachedClient.db('hydrocore')
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -24,13 +24,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    let db
-    try {
-      db = await getDb()
-    } catch (dbErr) {
-      console.error('[MongoDB Atlas Error]', dbErr.message)
-      return res.status(500).json({ error: 'MongoDB Atlas Connection Failed', details: dbErr.message })
-    }
+    const db = await getDb()
 
     let body = req.body
     if (typeof body === 'string') {
@@ -49,8 +43,7 @@ module.exports = async (req, res) => {
       updatedAt:  new Date(),
     }
 
-    const collection = db.collection('sensorreadings')
-    const result = await collection.insertOne(doc)
+    const result = await db.collection('sensorreadings').insertOne(doc)
 
     return res.status(201).json({
       success: true,
@@ -58,7 +51,7 @@ module.exports = async (req, res) => {
       message: 'Data saved successfully to MongoDB Atlas',
     })
   } catch (err) {
-    console.error('[Vercel Function Error]', err)
-    return res.status(500).json({ error: 'Internal Server Error', details: err.message })
+    console.error('[Vercel API Error]', err)
+    return res.status(500).json({ error: 'Database error', details: err.message })
   }
 }

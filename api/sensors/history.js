@@ -1,5 +1,5 @@
-// api/sensors/history.js — Native MongoDB Driver for Vercel Serverless
-const { MongoClient } = require('mongodb')
+// api/sensors/history.js — Native Vercel Function (ES Modules)
+import { MongoClient } from 'mongodb'
 
 let cachedClient = null
 const getDb = async () => {
@@ -10,7 +10,7 @@ const getDb = async () => {
   return cachedClient.db('hydrocore')
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
