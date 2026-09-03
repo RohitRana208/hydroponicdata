@@ -1,7 +1,5 @@
-const mongoose = require('mongoose')
+import mongoose from 'mongoose'
 
-// Simple key-value store for threshold settings
-// Only 1 document needed (we upsert it every time)
 const thresholdSchema = new mongoose.Schema(
   {
     _id: { type: String, default: 'global' },
@@ -17,4 +15,4 @@ const thresholdSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-module.exports = mongoose.model('ThresholdSetting', thresholdSchema)
+export default mongoose.models.ThresholdSetting || mongoose.model('ThresholdSetting', thresholdSchema)

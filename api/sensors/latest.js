@@ -1,14 +1,6 @@
 // api/sensors/latest.js — Vercel Serverless Function (ES Modules)
 import mongoose from 'mongoose'
-
-const sensorReadingSchema = new mongoose.Schema(
-  {
-    ph: Number, tds: Number, waterTemp: Number, airTemp: Number, humidity: Number, waterLevel: Number,
-  },
-  { timestamps: true }
-)
-
-const SensorReading = mongoose.models.SensorReading || mongoose.model('SensorReading', sensorReadingSchema)
+import SensorReading from '../../server/models/SensorReading.js'
 
 let isConnected = false
 const connectDB = async () => {
