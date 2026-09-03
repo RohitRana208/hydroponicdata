@@ -1,19 +1,5 @@
-// api/sensors/data.js — Self-contained Vercel Serverless Function
+// api/sensors/data.js — Vercel Serverless Function
 import mongoose from 'mongoose'
-
-const sensorReadingSchema = new mongoose.Schema(
-  {
-    ph:         { type: Number, required: true, default: 7.0 },
-    tds:        { type: Number, required: true, default: 300 },
-    waterTemp:  { type: Number, required: true, default: 25.0 },
-    airTemp:    { type: Number, required: true, default: 28.0 },
-    humidity:   { type: Number, required: true, default: 60 },
-    waterLevel: { type: Number, required: true, default: 15.0 },
-  },
-  { timestamps: true }
-)
-
-const SensorReading = mongoose.models.SensorReading || mongoose.model('SensorReading', sensorReadingSchema)
 
 let isConnected = false
 const connectDB = async () => {
@@ -21,6 +7,21 @@ const connectDB = async () => {
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
   const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
   isConnected = db.connections[0].readyState === 1
+}
+
+const getSensorModel = () => {
+  const sensorReadingSchema = new mongoose.Schema(
+    {
+      ph:         { type: Number, required: true, default: 7.0 },
+      tds:        { type: Number, required: true, default: 300 },
+      waterTemp:  { type: Number, required: true, default: 25.0 },
+      airTemp:    { type: Number, required: true, default: 28.0 },
+      humidity:   { type: Number, required: true, default: 60 },
+      waterLevel: { type: Number, required: true, default: 15.0 },
+    },
+    { timestamps: true }
+  )
+  return mongoose.models?.SensorReading || mongoose.model('SensorReading', sensorReadingSchema)
 }
 
 export default async function handler(req, res) {
@@ -43,6 +44,8 @@ export default async function handler(req, res) {
       console.error('[MongoDB Error]', dbErr.message)
       return res.status(500).json({ error: 'MongoDB Atlas connection failed', details: dbErr.message })
     }
+
+    const SensorReading = getSensorModel()
 
     let body = req.body
     if (typeof body === 'string') {

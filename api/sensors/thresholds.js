@@ -1,15 +1,5 @@
-// api/sensors/thresholds.js — Self-contained Vercel Serverless Function
+// api/sensors/thresholds.js — Vercel Serverless Function
 import mongoose from 'mongoose'
-
-const thresholdSchema = new mongoose.Schema(
-  {
-    _id: { type: String, default: 'global' },
-    thresholds: Object,
-  },
-  { timestamps: true }
-)
-
-const ThresholdSetting = mongoose.models.ThresholdSetting || mongoose.model('ThresholdSetting', thresholdSchema)
 
 let isConnected = false
 const connectDB = async () => {
@@ -17,6 +7,14 @@ const connectDB = async () => {
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
   const db = await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 })
   isConnected = db.connections[0].readyState === 1
+}
+
+const getThresholdModel = () => {
+  const thresholdSchema = new mongoose.Schema(
+    { _id: { type: String, default: 'global' }, thresholds: Object },
+    { timestamps: true }
+  )
+  return mongoose.models?.ThresholdSetting || mongoose.model('ThresholdSetting', thresholdSchema)
 }
 
 export default async function handler(req, res) {
@@ -32,6 +30,8 @@ export default async function handler(req, res) {
     } catch (dbErr) {
       return res.status(500).json({ error: 'MongoDB Atlas connection failed', details: dbErr.message })
     }
+
+    const ThresholdSetting = getThresholdModel()
 
     if (req.method === 'GET') {
       const doc = await ThresholdSetting.findById('global').lean()
