@@ -94,7 +94,7 @@ const SystemLogs = ({ logs }) => {
         <span className="text-xs font-mono text-zinc-600">
           {logs.length} event{logs.length !== 1 ? 's' : ''} logged
         </span>
-        <span className="text-xs font-mono text-zinc-700">hydrocore/sys v1.0</span>
+        <span className="text-xs font-mono text-zinc-700">nutriflow/sys v1.0</span>
       </div>
     </div>
   )

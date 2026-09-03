@@ -77,7 +77,7 @@ function App() {
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-100">
-                  Hydro<span className="text-emerald-400">Data</span>
+                  Nutri<span className="text-emerald-400">Flow</span>
                 </h3>
                 <p className="text-xs text-zinc-500 mt-1">Smart IoT Sensor Monitoring</p>
                 <p className="text-xs text-zinc-700 mt-3 font-mono">
@@ -90,7 +90,7 @@ function App() {
 
         {/* ─── Footer ──────────────────────────────────────────────────── */}
         <footer className="text-center text-xs text-zinc-700 pb-2 font-mono">
-          HydroData v1.0 · Polling every 3s · {new Date().getFullYear()}
+          NutriFlow v1.0 · Polling every 3s · {new Date().getFullYear()}
         </footer>
 
       </div>

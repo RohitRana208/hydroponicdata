@@ -58,7 +58,7 @@ export const useSensorData = () => {
   const [lastUpdated, setLastUpdated] = useState(new Date())
   const [isLoading,   setIsLoading]   = useState(true)
   const [logs, setLogs] = useState([
-    { id: 1, time: new Date(), level: 'info', message: 'System booting... connecting to HydroCore server.' },
+    { id: 1, time: new Date(), level: 'info', message: 'System booting... connecting to NutriFlow server.' },
   ])
   const logIdRef  = useRef(2)
   const prevIdRef = useRef(null)   // track last doc _id to detect new readings

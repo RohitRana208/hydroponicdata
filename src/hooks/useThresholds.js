@@ -22,7 +22,7 @@ export const DEFAULT_THRESHOLDS = {
 // Load saved thresholds from localStorage
 const loadSaved = () => {
   try {
-    const raw = localStorage.getItem('hydrodata_thresholds')
+    const raw = localStorage.getItem('nutriflow_thresholds')
     if (raw) {
       const parsed = JSON.parse(raw)
       // Merge with defaults to handle new keys
@@ -67,7 +67,7 @@ export const useThresholds = () => {
     setSaveStatus(null)
 
     // Save to localStorage (instant, works offline)
-    localStorage.setItem('hydrodata_thresholds', JSON.stringify(toSave))
+    localStorage.setItem('nutriflow_thresholds', JSON.stringify(toSave))
     setThresholds(toSave)
 
     // Try to sync to backend (ESP32 will poll this)
@@ -86,7 +86,7 @@ export const useThresholds = () => {
   // Reset to defaults
   const resetThresholds = useCallback(() => {
     setThresholds(DEFAULT_THRESHOLDS)
-    localStorage.setItem('hydrodata_thresholds', JSON.stringify(DEFAULT_THRESHOLDS))
+    localStorage.setItem('nutriflow_thresholds', JSON.stringify(DEFAULT_THRESHOLDS))
   }, [])
 
   return {

@@ -1,7 +1,7 @@
 {
-  "name": "hydrocore-server",
+  "name": "nutriflow-server",
   "version": "1.0.0",
-  "description": "HydroCore IoT Backend Server",
+  "description": "NutriFlow IoT Backend Server",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

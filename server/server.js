@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// HydroData — Express Backend Server
+// NutriFlow — Express Backend Server
 // ─────────────────────────────────────────────────────────────────────────────
 
 require('dotenv').config()
@@ -11,7 +11,6 @@ const ThresholdSetting  = require('./models/ThresholdSetting')
 
 const app  = express()
 const PORT = process.env.PORT || 5000
-
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 
@@ -52,7 +51,7 @@ const connectDB = async () => {
 app.get('/health', (req, res) => {
   res.json({
     status:   'ok',
-    server:   'HydroCore Intelligence v1.0',
+    server:   'NutriFlow Intelligence v1.0',
     database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     time:     new Date().toISOString(),
   })
@@ -267,7 +266,7 @@ const startServer = async () => {
   await connectDB()
 
   app.listen(PORT, () => {
-    console.log('\n🚀 HydroData Server chal raha hai!')
+    console.log('\n🚀 NutriFlow Server chal raha hai!')
     console.log(`   Local:       http://localhost:${PORT}`)
     console.log(`   Health:      http://localhost:${PORT}/health`)
     console.log(`   Latest:      http://localhost:${PORT}/api/sensors/latest`)

@@ -32,7 +32,7 @@ const Header = ({ isConnected, lastUpdated }) => {
         </div>
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-slate-100 leading-none">
-            Hydro<span className="text-emerald-400 neon-text">Data</span>
+            Nutri<span className="text-emerald-400 neon-text">Flow</span>
           </h1>
           <p className="text-xs text-zinc-500 mt-0.5 font-medium tracking-widest uppercase">
             Smart Sensor Dashboard

@@ -1,77 +1,37 @@
-# UrbanLock HydroCore Intelligence 🌊
+# NutriFlow — Smart IoT Sensor Dashboard 🌊
 
-A real-time IoT sensor dashboard built with **React + Vite + Tailwind CSS + Recharts**.
+A real-time IoT water monitoring dashboard & backend built with **React + Vite + Tailwind CSS + Recharts + Express + MongoDB Atlas**.
 
 ## Tech Stack
 
-| Layer | Library |
-|-------|---------|
+| Layer | Technology |
+|-------|------------|
 | Framework | React 18 + Vite 5 |
 | Styling | Tailwind CSS 3 |
 | Charts | Recharts 2 |
 | Icons | Lucide React |
-| HTTP | Axios |
+| Backend | Express.js |
+| Database | MongoDB Atlas (Cloud) |
 
 ## Getting Started
 
+### 1. Dashboard (Frontend)
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # production bundle → dist/
 ```
 
-## Project Structure
-
-```
-src/
-├── api/
-│   └── sensorApi.js          # Axios client + API helpers
-├── components/
-│   ├── Header.jsx             # Nav bar with status badges
-│   ├── SensorCard.jsx         # Reusable glassmorphism sensor card
-│   ├── SensorGrid.jsx         # 6-card responsive grid
-│   ├── WaterChemistryChart.jsx  # pH + TDS multi-line chart
-│   ├── EnvironmentalChart.jsx   # Water/Air temp area chart
-│   ├── ControlPanel.jsx       # Target pH setter widget
-│   └── SystemLogs.jsx         # Terminal-style event log
-├── hooks/
-│   └── useSensorData.js       # Data hook (mock + API placeholder)
-├── App.jsx
-├── main.jsx
-└── index.css
+### 2. Express Server (Backend)
+```bash
+cd server
+npm install
+node server.js     # http://localhost:5001
 ```
 
-## Connecting to Your Express Backend
+## Features
 
-1. Set `VITE_API_BASE_URL` in `.env` to your server URL:
-   ```
-   VITE_API_BASE_URL=http://192.168.1.100:5000
-   ```
-
-2. In `src/hooks/useSensorData.js`, uncomment the axios block inside `tick()` and remove the mock block.
-
-3. In `src/components/ControlPanel.jsx`, uncomment the `updateTargetPh` call.
-
-**Expected GET `/api/sensors/latest` response:**
-```json
-{
-  "ph": 7.2,
-  "tds": 342,
-  "waterTemp": 24.5,
-  "airTemp": 28.1,
-  "humidity": 65,
-  "waterLevel": 12.4,
-  "timestamp": "2026-09-03T04:08:11Z"
-}
-```
-
-## Sensors Monitored
-
-| Sensor | Hardware | Unit |
-|--------|----------|------|
-| pH Level | Analog pH probe | pH |
-| TDS | TDS-3 digital probe | PPM |
-| Water Temperature | DS18B20 | °C |
-| Air Temperature | DHT11 | °C |
-| Air Humidity | DHT11 | % |
-| Water Level Distance | HC-SR04 ultrasonic | cm |
+- **Live Real-time Dashboard:** Auto-updates every 3 seconds
+- **6 Hardware Parameters:** pH Level, TDS (PPM), Water Temp, Air Temp, Air Humidity, Water Level Distance
+- **Interactive Threshold Settings:** Set Min/Max alerts for all sensors, saved locally & synced to backend for hardware
+- **Time-Series Charts:** Dual Y-axis water chemistry line chart & environmental gradient area chart
+- **MongoDB Atlas Integration:** Continuous cloud logging with automatic 7-day TTL cleanup
