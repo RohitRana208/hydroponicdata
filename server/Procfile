@@ -1,0 +1,2 @@
+# Railway will auto-detect Node.js and run this
+web: node server.js
