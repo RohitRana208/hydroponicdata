@@ -5,7 +5,7 @@ let cachedClient = null
 const getDb = async () => {
   if (cachedClient) return cachedClient.db('hydrocore')
   const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
-  cachedClient = new MongoClient(uri, { serverSelectionTimeoutMS: 5000 })
+  cachedClient = new MongoClient(uri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 })
   await cachedClient.connect()
   return cachedClient.db('hydrocore')
 }
@@ -23,9 +23,19 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed. Use POST.' })
   }
 
+  let db
   try {
-    const db = await getDb()
+    db = await getDb()
+  } catch (dbErr) {
+    console.error('[MongoDB Atlas Connection Error]', dbErr.message)
+    return res.status(500).json({
+      error: 'MongoDB Atlas connection failed',
+      details: dbErr.message,
+      hint: 'Please ensure 0.0.0.0/0 IP Whitelist is enabled in MongoDB Atlas Network Access'
+    })
+  }
 
+  try {
     let body = req.body
     if (typeof body === 'string') {
       try { body = JSON.parse(body) } catch (_) {}
@@ -52,6 +62,6 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('[Vercel API Error]', err)
-    return res.status(500).json({ error: 'Database error', details: err.message })
+    return res.status(500).json({ error: 'Database query error', details: err.message })
   }
 }
