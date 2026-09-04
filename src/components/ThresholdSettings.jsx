@@ -1,27 +1,38 @@
 // src/components/ThresholdSettings.jsx
-// Full-featured alert threshold editor for all 6 sensors.
+// Full-featured alert threshold editor for all 7 sensors.
 // Changes are saved to localStorage AND sent to backend (ESP32 polls them).
 
 import { useState } from 'react'
 import {
   Bell, BellOff, RotateCcw, Save, CheckCircle2,
   AlertCircle, WifiOff, ChevronDown, ChevronUp, Sliders,
-  Droplets, Gauge, Thermometer, Wind, CloudRain, Ruler,
+  Droplets, Gauge, Thermometer, Wind, CloudRain, Ruler, Zap,
 } from 'lucide-react'
 import { DEFAULT_THRESHOLDS } from '../hooks/useThresholds'
 
 const SENSOR_META = {
-  ph:         { icon: Droplets,    color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', step: 0.1, absMin: 0,  absMax: 14  },
-  tds:        { icon: Gauge,       color: 'text-violet-400',  bg: 'bg-violet-500/10 border-violet-500/20',   step: 10,  absMin: 0,  absMax: 1000 },
-  waterTemp:  { icon: Thermometer, color: 'text-sky-400',     bg: 'bg-sky-500/10 border-sky-500/20',         step: 0.5, absMin: 0,  absMax: 50  },
-  airTemp:    { icon: Wind,        color: 'text-orange-400',  bg: 'bg-orange-500/10 border-orange-500/20',   step: 0.5, absMin: -10,absMax: 60  },
-  humidity:   { icon: CloudRain,   color: 'text-cyan-400',    bg: 'bg-cyan-500/10 border-cyan-500/20',       step: 1,   absMin: 0,  absMax: 100 },
-  waterLevel: { icon: Ruler,       color: 'text-teal-400',    bg: 'bg-teal-500/10 border-teal-500/20',       step: 0.5, absMin: 0,  absMax: 400 },
+  ph:         { icon: Droplets,    color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20', step: 0.1, absMin: 0,   absMax: 14   },
+  tds:        { icon: Gauge,       color: 'text-violet-400',  bg: 'bg-violet-500/10 border-violet-500/20',   step: 10,  absMin: 0,   absMax: 1000 },
+  ec:         { icon: Zap,         color: 'text-yellow-400',  bg: 'bg-yellow-500/10 border-yellow-500/20',   step: 0.1, absMin: 0,   absMax: 10   },
+  waterTemp:  { icon: Thermometer, color: 'text-sky-400',     bg: 'bg-sky-500/10 border-sky-500/20',         step: 0.5, absMin: 0,   absMax: 50   },
+  airTemp:    { icon: Wind,        color: 'text-orange-400',  bg: 'bg-orange-500/10 border-orange-500/20',   step: 0.5, absMin: -10, absMax: 60   },
+  humidity:   { icon: CloudRain,   color: 'text-cyan-400',    bg: 'bg-cyan-500/10 border-cyan-500/20',       step: 1,   absMin: 0,   absMax: 100  },
+  waterLevel: { icon: Ruler,       color: 'text-teal-400',    bg: 'bg-teal-500/10 border-teal-500/20',       step: 0.5, absMin: 0,   absMax: 400  },
 }
 
 const ThresholdRow = ({ sensorKey, threshold, meta, onToggle, onChange }) => {
-  const Icon = meta.icon
   const [open, setOpen] = useState(false)
+  if (!threshold) return null
+
+  const safeMeta = meta || {
+    icon: Zap,
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/10 border-yellow-500/20',
+    step: 0.1,
+    absMin: 0,
+    absMax: 100,
+  }
+  const Icon = safeMeta.icon
 
   return (
     <div className={`rounded-xl border transition-all duration-200 overflow-hidden ${
@@ -32,8 +43,8 @@ const ThresholdRow = ({ sensorKey, threshold, meta, onToggle, onChange }) => {
 
       {/* Row header */}
       <div className="flex items-center gap-3 px-4 py-3">
-        <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${meta.bg}`}>
-          <Icon className={`w-4 h-4 ${meta.color}`} />
+        <div className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 ${safeMeta.bg}`}>
+          <Icon className={`w-4 h-4 ${safeMeta.color}`} />
         </div>
 
         <div className="flex-1 min-w-0">
@@ -91,18 +102,18 @@ const ThresholdRow = ({ sensorKey, threshold, meta, onToggle, onChange }) => {
               <input
                 type="number"
                 value={threshold.min}
-                step={meta.step}
-                min={meta.absMin}
-                max={threshold.max - meta.step}
+                step={safeMeta.step}
+                min={safeMeta.absMin}
+                max={threshold.max - safeMeta.step}
                 onChange={e => onChange(sensorKey, 'min', parseFloat(e.target.value))}
                 className="input-dark w-full text-sky-300 font-mono"
               />
               <input
                 type="range"
                 value={threshold.min}
-                step={meta.step}
-                min={meta.absMin}
-                max={threshold.max - meta.step}
+                step={safeMeta.step}
+                min={safeMeta.absMin}
+                max={threshold.max - safeMeta.step}
                 onChange={e => onChange(sensorKey, 'min', parseFloat(e.target.value))}
                 className="w-full accent-sky-500 cursor-pointer"
               />
@@ -116,18 +127,18 @@ const ThresholdRow = ({ sensorKey, threshold, meta, onToggle, onChange }) => {
               <input
                 type="number"
                 value={threshold.max}
-                step={meta.step}
-                min={threshold.min + meta.step}
-                max={meta.absMax}
+                step={safeMeta.step}
+                min={threshold.min + safeMeta.step}
+                max={safeMeta.absMax}
                 onChange={e => onChange(sensorKey, 'max', parseFloat(e.target.value))}
                 className="input-dark w-full text-rose-300 font-mono"
               />
               <input
                 type="range"
                 value={threshold.max}
-                step={meta.step}
-                min={threshold.min + meta.step}
-                max={meta.absMax}
+                step={safeMeta.step}
+                min={threshold.min + safeMeta.step}
+                max={safeMeta.absMax}
                 onChange={e => onChange(sensorKey, 'max', parseFloat(e.target.value))}
                 className="w-full accent-rose-500 cursor-pointer"
               />
@@ -137,23 +148,23 @@ const ThresholdRow = ({ sensorKey, threshold, meta, onToggle, onChange }) => {
           {/* Visual range bar */}
           <div className="space-y-1">
             <div className="flex justify-between text-[10px] text-zinc-600 font-mono">
-              <span>{meta.absMin}</span>
+              <span>{safeMeta.absMin}</span>
               <span className="text-zinc-400">Normal Range → {threshold.min} to {threshold.max} {threshold.unit}</span>
-              <span>{meta.absMax}</span>
+              <span>{safeMeta.absMax}</span>
             </div>
             <div className="h-2 rounded-full bg-zinc-800 relative overflow-hidden">
               {/* Warning zones */}
               <div className="absolute inset-y-0 bg-rose-500/25 rounded-full"
-                style={{ left: 0, right: `${100 - (threshold.min / meta.absMax) * 100}%` }} />
+                style={{ left: 0, right: `${Math.max(0, 100 - (threshold.min / safeMeta.absMax) * 100)}%` }} />
               {/* Normal zone */}
               <div className="absolute inset-y-0 bg-emerald-500/40 rounded-full"
                 style={{
-                  left:  `${(threshold.min / meta.absMax) * 100}%`,
-                  right: `${100 - (threshold.max / meta.absMax) * 100}%`
+                  left:  `${Math.max(0, (threshold.min / safeMeta.absMax) * 100)}%`,
+                  right: `${Math.max(0, 100 - (threshold.max / safeMeta.absMax) * 100)}%`
                 }} />
               {/* Right warning */}
               <div className="absolute inset-y-0 bg-rose-500/25 rounded-full"
-                style={{ left: `${(threshold.max / meta.absMax) * 100}%`, right: 0 }} />
+                style={{ left: `${Math.min(100, (threshold.max / safeMeta.absMax) * 100)}%`, right: 0 }} />
             </div>
             <div className="flex justify-between text-[10px]">
               <span className="text-rose-400">⚠ Below {threshold.min}</span>
@@ -169,8 +180,8 @@ const ThresholdRow = ({ sensorKey, threshold, meta, onToggle, onChange }) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ThresholdSettings = ({ thresholds, updateThreshold, saveThresholds, resetThresholds, saving, saveStatus }) => {
-  const [localThresholds, setLocalThresholds] = useState({ ...thresholds })
+const ThresholdSettings = ({ thresholds = {}, updateThreshold, saveThresholds, resetThresholds, saving, saveStatus }) => {
+  const [localThresholds, setLocalThresholds] = useState({ ...DEFAULT_THRESHOLDS, ...thresholds })
 
   const handleChange = (key, field, value) => {
     setLocalThresholds(prev => ({

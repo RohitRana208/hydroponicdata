@@ -1,9 +1,15 @@
 // src/components/Header.jsx
-import { Wifi, WifiOff, Activity, Droplets, RefreshCw } from 'lucide-react'
+import { Wifi, WifiOff, Activity, RefreshCw } from 'lucide-react'
 
 const Header = ({ isConnected, lastUpdated }) => {
-  const formatTime = (date) =>
-    date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  const formatTime = (date) => {
+    try {
+      const d = date instanceof Date ? date : new Date(date || Date.now())
+      return isNaN(d.getTime()) ? '--:--:--' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    } catch (_) {
+      return '--:--:--'
+    }
+  }
 
   return (
     <header className="glass-card px-6 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
