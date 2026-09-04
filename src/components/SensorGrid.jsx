@@ -25,7 +25,7 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       key: 'ph',
       icon: Droplets,
       label: 'pH Level',
-      value: latest?.ph?.toFixed(2),
+      value: latest?.ph != null ? latest.ph.toFixed(2) : null,
       unit: 'pH',
       status: getStatus('ph', latest?.ph),
       subLabel: 'Water acidity / alkalinity',
@@ -37,10 +37,10 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       key: 'tds',
       icon: Gauge,
       label: 'TDS',
-      value: latest?.tds,
+      value: latest?.tds != null ? latest.tds : null,
       unit: 'PPM',
       status: getStatus('tds', latest?.tds),
-      subLabel: 'Total Dissolved Solids — purity',
+      subLabel: 'Total Dissolved Solids',
       iconColor: 'text-violet-400',
       iconBg: 'bg-violet-500/10 border-violet-500/20',
       ...tdsTrend,
@@ -49,7 +49,7 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       key: 'ec',
       icon: Zap,
       label: 'EC',
-      value: latest?.ec?.toFixed(2),
+      value: latest?.ec != null ? latest.ec.toFixed(2) : null,
       unit: 'mS/cm',
       status: getStatus('ec', latest?.ec),
       subLabel: 'Electrical Conductivity',
@@ -61,7 +61,7 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       key: 'waterTemp',
       icon: Thermometer,
       label: 'Water Temp',
-      value: latest?.waterTemp?.toFixed(1),
+      value: latest?.waterTemp != null ? latest.waterTemp.toFixed(1) : null,
       unit: '°C',
       status: getStatus('waterTemp', latest?.waterTemp),
       subLabel: 'DS18B20 waterproof probe',
@@ -73,7 +73,7 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       key: 'airTemp',
       icon: Wind,
       label: 'Air Temp',
-      value: latest?.airTemp?.toFixed(1),
+      value: latest?.airTemp != null ? latest.airTemp.toFixed(1) : null,
       unit: '°C',
       status: getStatus('airTemp', latest?.airTemp),
       subLabel: 'DHT11 ambient reading',
@@ -85,7 +85,7 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       key: 'humidity',
       icon: CloudRain,
       label: 'Air Humidity',
-      value: latest?.humidity,
+      value: latest?.humidity != null ? latest.humidity : null,
       unit: '%',
       status: getStatus('humidity', latest?.humidity),
       subLabel: 'DHT11 relative humidity',
@@ -97,10 +97,10 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       key: 'waterLevel',
       icon: Ruler,
       label: 'Water Level',
-      value: latest?.waterLevel?.toFixed(1),
+      value: latest?.waterLevel != null ? latest.waterLevel.toFixed(1) : null,
       unit: 'cm',
       status: getStatus('waterLevel', latest?.waterLevel),
-      subLabel: 'HC-SR04 ultrasonic distance',
+      subLabel: 'HC-SR04 ultrasonic sensor',
       iconColor: 'text-teal-400',
       iconBg: 'bg-teal-500/10 border-teal-500/20',
       ...wlTrend,
@@ -109,28 +109,33 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
 
   return (
     <section>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-sm font-semibold text-zinc-400 tracking-widest uppercase">
           Live Sensor Readings
         </h2>
         <div className="flex items-center gap-3">
-          {isConnected && (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+          {isConnected ? (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Hardware Connected
+              ESP32 Hardware Connected
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium bg-zinc-800/60 border border-zinc-700/40 px-2.5 py-1 rounded-full">
+              <span className="w-2 h-2 rounded-full bg-zinc-600" />
+              Hardware Offline (Showing Last Reading)
             </span>
           )}
-          <span className="text-xs text-zinc-600 tabular-nums">7 sensors · Tap to view graph</span>
+          <span className="text-xs text-zinc-600 tabular-nums">7 sensors</span>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 relative">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {cards.map((card) => (
           <SensorCard
             key={card.key}
             {...card}
             isConnected={isConnected}
             selected={selectedSensor === card.key}
-            onClick={() => onSensorSelect(selectedSensor === card.key ? null : card.key)}
+            onClick={() => onSensorSelect?.(selectedSensor === card.key ? null : card.key)}
           />
         ))}
       </div>

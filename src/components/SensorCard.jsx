@@ -22,6 +22,11 @@ const statusConfig = {
     classes: 'bg-sky-500/10 text-sky-400 border-sky-500/25',
     glow: 'rgba(14,165,233,0.08)',
   },
+  offline: {
+    label: 'Offline',
+    classes: 'bg-zinc-800 text-zinc-500 border-zinc-700/50',
+    glow: 'transparent',
+  },
 }
 
 const SensorCard = ({
@@ -39,7 +44,8 @@ const SensorCard = ({
   selected = false,
   onClick,
 }) => {
-  const cfg = statusConfig[status] || statusConfig.normal
+  const currentStatus = !isConnected ? 'offline' : (status || 'normal')
+  const cfg = statusConfig[currentStatus] || statusConfig.normal
 
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
   const trendColor =
@@ -47,34 +53,45 @@ const SensorCard = ({
     trend === 'down' ? 'text-sky-400'  :
     'text-zinc-500'
 
+  // If disconnected: neutral gray border. If selected: glowing blue ring. If live connected: green border.
+  const cardBorder = selected
+    ? '2px solid #60a5fa'
+    : isConnected
+    ? '1px solid rgba(16,185,129,0.55)'
+    : '1px solid rgba(63,63,70,0.45)'
+
+  const cardShadow = selected
+    ? '0 0 20px rgba(96,165,250,0.35)'
+    : isConnected
+    ? '0 0 12px rgba(16,185,129,0.18)'
+    : '0 4px 20px rgba(0,0,0,0.3)'
+
   return (
     <div
       onClick={onClick}
-      className="relative p-5 flex flex-col gap-4 cursor-pointer transition-all duration-200 rounded-2xl backdrop-blur-md"
+      className={`relative p-5 flex flex-col gap-4 cursor-pointer transition-all duration-200 rounded-2xl backdrop-blur-md hover:scale-[1.01] ${
+        selected ? 'bg-zinc-900/90' : 'bg-zinc-900/60'
+      }`}
       style={{
-        background: `linear-gradient(135deg, rgba(24,24,27,0.85) 0%, ${cfg.glow} 100%)`,
-        boxShadow: selected
-          ? '0 0 0 2px #60a5fa, 0 0 18px rgba(96,165,250,0.35)'
-          : isConnected
-          ? '0 0 0 1.5px rgba(16,185,129,0.7), 0 0 12px rgba(16,185,129,0.2)'
-          : '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
-        border: selected
-          ? '2px solid transparent'
-          : isConnected
-          ? '1px solid rgba(16,185,129,0.5)'
-          : '1px solid rgba(63,63,70,0.6)',
+        border: cardBorder,
+        boxShadow: cardShadow,
       }}
     >
-      {/* Green pulse dot when connected */}
+      {/* Green pulse dot ONLY when live connected */}
       {isConnected && (
-        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
-          style={{ boxShadow: '0 0 6px rgba(16,185,129,0.9)' }} />
+        <span
+          className="absolute top-3.5 right-3.5 w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+          style={{ boxShadow: '0 0 6px rgba(16,185,129,0.9)' }}
+          title="Hardware Live Connected"
+        />
       )}
 
       {/* Top row: icon + status */}
       <div className="flex items-start justify-between">
-        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${iconBg}`}>
-          <Icon className={`w-5 h-5 ${iconColor}`} />
+        <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 ${
+          isConnected ? iconBg : 'bg-zinc-800/60 border-zinc-700/40'
+        }`}>
+          <Icon className={`w-5 h-5 ${isConnected ? iconColor : 'text-zinc-500'}`} />
         </div>
         <span className={`status-badge border text-xs ${cfg.classes}`}>
           {cfg.label}
@@ -87,7 +104,9 @@ const SensorCard = ({
           {label}
         </p>
         <div className="flex items-end gap-2">
-          <span className="text-3xl font-bold text-slate-100 tabular-nums leading-none">
+          <span className={`text-3xl font-bold tabular-nums leading-none ${
+            isConnected ? 'text-slate-100' : 'text-zinc-400'
+          }`}>
             {value !== undefined && value !== null ? value : '—'}
           </span>
           <span className="text-sm text-zinc-400 mb-0.5 font-medium">{unit}</span>
@@ -109,8 +128,14 @@ const SensorCard = ({
       )}
 
       {/* Tap hint when selected */}
-      {selected && (
-        <p className="text-xs text-blue-400 font-medium">📊 Showing in graph ↓</p>
+      {selected ? (
+        <p className="text-xs text-blue-400 font-semibold mt-auto flex items-center gap-1">
+          📊 Graph Active Below ↓
+        </p>
+      ) : (
+        <p className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors mt-auto">
+          Tap card to view graph →
+        </p>
       )}
     </div>
   )
