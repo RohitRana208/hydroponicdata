@@ -14,7 +14,8 @@ import { useThresholds }  from './hooks/useThresholds'
 
 function App() {
   const {
-    latest, previous, history, logs, isConnected, lastUpdated, addLog,
+    latest, previous, history, logs,
+    isConnected, lastUpdated, addLog,
   } = useSensorData()
 
   const {
@@ -25,22 +26,22 @@ function App() {
   const [selectedSensor, setSelectedSensor] = useState(null)
 
   return (
-    <div className="min-h-screen bg-zinc-950 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.04)_0%,_transparent_60%)] p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-zinc-950 p-4 md:p-6 lg:p-8"
+      style={{ background: 'radial-gradient(ellipse at top, rgba(16,185,129,0.04) 0%, #09090b 60%)' }}>
       <div className="max-w-screen-xl mx-auto space-y-6">
 
-        {/* ─── Header ──────────────────────────────────────────────────── */}
+        {/* Header */}
         <Header isConnected={isConnected} lastUpdated={lastUpdated} />
 
-        {/* ─── Download Row ─────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between">
-          <div className="text-xs text-zinc-600 tabular-nums">
-            {history.length} readings stored in memory
-            {history.length > 0 && ` · ${new Date(history[0]?.rawTime).toLocaleString()} → Now`}
-          </div>
+        {/* Download Row */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <p className="text-xs text-zinc-600 tabular-nums">
+            {history.length} readings in memory
+          </p>
           <DownloadButton history={history} />
         </div>
 
-        {/* ─── Sensor Cards Grid ───────────────────────────────────────── */}
+        {/* Sensor Cards Grid */}
         <SensorGrid
           latest={latest}
           previous={previous}
@@ -50,7 +51,7 @@ function App() {
           onSensorSelect={setSelectedSensor}
         />
 
-        {/* ─── Single Sensor Detail Chart (shown when card is tapped) ─── */}
+        {/* Single Sensor Detail Chart */}
         {selectedSensor && (
           <SensorDetailChart
             sensorKey={selectedSensor}
@@ -59,7 +60,7 @@ function App() {
           />
         )}
 
-        {/* ─── Charts Row ──────────────────────────────────────────────── */}
+        {/* Charts Row */}
         <section>
           <h2 className="text-sm font-semibold text-zinc-400 tracking-widest uppercase mb-4">
             Analytics &amp; Time-Series
@@ -70,7 +71,7 @@ function App() {
           </div>
         </section>
 
-        {/* ─── Alert Thresholds + Logs ─────────────────────────────────── */}
+        {/* Thresholds + Logs */}
         <section>
           <h2 className="text-sm font-semibold text-zinc-400 tracking-widest uppercase mb-4">
             Alert Settings &amp; System Events
@@ -88,7 +89,7 @@ function App() {
           </div>
         </section>
 
-        {/* ─── Control Panel ───────────────────────────────────────────── */}
+        {/* Control Panel */}
         <section>
           <h2 className="text-sm font-semibold text-zinc-400 tracking-widest uppercase mb-4">
             Control Panel
@@ -107,18 +108,17 @@ function App() {
                 <h3 className="text-lg font-bold text-slate-100">
                   Nutri<span className="text-emerald-400">Flow</span>
                 </h3>
-                <p className="text-xs text-zinc-500 mt-1">Smart IoT Sensor Monitoring</p>
+                <p className="text-xs text-zinc-500 mt-1">Smart IoT Sensor Monitoring v2.0</p>
                 <p className="text-xs text-zinc-700 mt-3 font-mono">
-                  Polling every 2s · MongoDB Atlas · ESP32 · {history.length} pts stored
+                  ESP32 · MongoDB Atlas · 7 Sensors · EC enabled
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ─── Footer ──────────────────────────────────────────────────── */}
         <footer className="text-center text-xs text-zinc-700 pb-2 font-mono">
-          NutriFlow v2.0 · Polling every 2s · {new Date().getFullYear()} · 7 sensors · EC enabled
+          NutriFlow v2.0 · {new Date().getFullYear()}
         </footer>
 
       </div>
