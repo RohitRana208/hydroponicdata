@@ -1,14 +1,14 @@
 // src/hooks/useSensorData.js
 // ─────────────────────────────────────────────────────────────────────────────
 // Custom hook — Real MongoDB Atlas backend se live data fetch karta hai
-// ESP32 → Express Server (port 5001) → MongoDB Atlas → Dashboard
+// ESP32 → Vercel Serverless → MongoDB Atlas → Dashboard
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { fetchLatestSensorData } from '../api/sensorApi'
+import axios from 'axios'
 
 const POLL_INTERVAL_MS = 2000
-const HISTORY_LENGTH   = 30
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? ''
 
 // ─── Threshold alert rules ────────────────────────────────────────────────────
 const checkThresholds = (data, addLog) => {
@@ -25,35 +25,28 @@ const checkThresholds = (data, addLog) => {
 }
 
 // ─── Convert DB document → chart-friendly entry ───────────────────────────────
-const toChartEntry = (doc) => ({
+export const toChartEntry = (doc) => ({
   time:       new Date(doc.createdAt || doc.timestamp || Date.now())
                 .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-  ph:         doc.ph,
-  tds:        doc.tds,
-  waterTemp:  doc.waterTemp,
-  airTemp:    doc.airTemp,
-  humidity:   doc.humidity,
-  waterLevel: doc.waterLevel,
+  rawTime:    new Date(doc.createdAt || doc.timestamp || Date.now()).getTime(),
+  ph:         doc.ph         ?? null,
+  tds:        doc.tds        ?? null,
+  ec:         doc.ec         ?? null,
+  waterTemp:  doc.waterTemp  ?? null,
+  airTemp:    doc.airTemp    ?? null,
+  humidity:   doc.humidity   ?? null,
+  waterLevel: doc.waterLevel ?? null,
 })
 
-// ─── Placeholder history while first fetch loads ──────────────────────────────
-const createLoadingHistory = () => {
-  const now = Date.now()
-  return Array.from({ length: HISTORY_LENGTH }, (_, i) => ({
-    time:       new Date(now - (HISTORY_LENGTH - i) * POLL_INTERVAL_MS)
-                  .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    ph:         7.0,
-    tds:        350,
-    waterTemp:  24.0,
-    airTemp:    28.0,
-    humidity:   65,
-    waterLevel: 13.0,
-  }))
+// ─── Filter history to N hours ────────────────────────────────────────────────
+export const filterByHours = (history, hours) => {
+  const cutoff = Date.now() - hours * 60 * 60 * 1000
+  return history.filter(e => e.rawTime >= cutoff)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 export const useSensorData = () => {
-  const [history,     setHistory]     = useState(createLoadingHistory)
+  const [history,     setHistory]     = useState([])
   const [isConnected, setIsConnected] = useState(false)
   const [lastUpdated, setLastUpdated] = useState(new Date())
   const [isLoading,   setIsLoading]   = useState(true)
@@ -61,7 +54,7 @@ export const useSensorData = () => {
     { id: 1, time: new Date(), level: 'info', message: 'System booting... connecting to NutriFlow server.' },
   ])
   const logIdRef  = useRef(2)
-  const prevIdRef = useRef(null)   // track last doc _id to detect new readings
+  const prevIdRef = useRef(null)
 
   const addLog = useCallback((level, message) => {
     setLogs(prev => [
@@ -73,42 +66,37 @@ export const useSensorData = () => {
   // ── Main polling tick ──────────────────────────────────────────────────────
   const tick = useCallback(async () => {
     try {
-      const data = await fetchLatestSensorData()   // GET /api/sensors/latest
+      const res  = await axios.get(`${API_BASE}/api/sensors/latest`, { timeout: 8000 })
+      const data = res.data
 
-      // Sirf naya data aaya ho to history update karo
       const isNew = data._id !== prevIdRef.current
       prevIdRef.current = data._id
 
-      const entry = toChartEntry(data)
-
-      setHistory(prev => {
-        const last = prev[prev.length - 1]
-        // Naya _id ho ya latest values alag ho to update karo
-        if (!isNew && last && last.tds === entry.tds && last.ph === entry.ph) return prev
-        return [...prev.slice(1 - HISTORY_LENGTH), entry]
-      })
-
-      // Threshold check sirf naya data aane pe
-      if (isNew) checkThresholds(data, addLog)
+      if (isNew) {
+        const entry = toChartEntry(data)
+        setHistory(prev => {
+          // Keep at most 48h of data (prevent unbounded growth)
+          const cutoff = Date.now() - 48 * 60 * 60 * 1000
+          const trimmed = prev.filter(e => e.rawTime >= cutoff)
+          return [...trimmed, entry]
+        })
+        checkThresholds(data, addLog)
+      }
 
       setIsConnected(true)
       setIsLoading(false)
       setLastUpdated(new Date())
-
     } catch (err) {
       setIsConnected(false)
       addLog('error', `Server se connection fail: ${err.message}`)
     }
   }, [addLog])
 
-  // ── On mount: try to load history from API ─────────────────────────────────
+  // ── On mount: load last 48 hours from DB ───────────────────────────────────
   useEffect(() => {
     const loadHistory = async () => {
       try {
-        // /api/sensors/history se last 30 readings fetch karo
-        const { default: axios } = await import('axios')
-        const base = import.meta.env.VITE_API_BASE_URL !== undefined ? import.meta.env.VITE_API_BASE_URL : ''
-        const res  = await axios.get(`${base}/api/sensors/history?limit=${HISTORY_LENGTH}`)
+        const res  = await axios.get(`${API_BASE}/api/sensors/history?hours=48&limit=50000`, { timeout: 15000 })
         const docs = res.data
 
         if (docs && docs.length > 0) {
@@ -116,18 +104,17 @@ export const useSensorData = () => {
           prevIdRef.current = docs[docs.length - 1]._id
           setIsConnected(true)
           setIsLoading(false)
-          addLog('info', `✅ MongoDB Atlas connected. ${docs.length} readings loaded.`)
+          addLog('info', `✅ MongoDB Atlas connected. ${docs.length} readings loaded (last 48h).`)
         } else {
           addLog('info', 'Server connected — ESP32 ka data wait kar raha hun...')
           setIsConnected(true)
           setIsLoading(false)
         }
       } catch (err) {
-        addLog('error', `Server nahi mila: ${err.message} — Mock data dikh raha hai.`)
+        addLog('error', `Server nahi mila: ${err.message} — Polling se data aayega.`)
         setIsLoading(false)
       }
     }
-
     loadHistory()
   }, [addLog])
 
@@ -137,10 +124,12 @@ export const useSensorData = () => {
     return () => clearInterval(interval)
   }, [tick])
 
-  const latest = history[history.length - 1]
+  const latest = history.length > 0 ? history[history.length - 1] : null
+  const previous = history.length >= 2 ? history[history.length - 2] : null
 
   return {
     latest,
+    previous,
     history,
     logs,
     isConnected,

@@ -1,6 +1,6 @@
 // src/components/SensorGrid.jsx
 import {
-  Droplets, Gauge, Thermometer, Wind, CloudRain, Ruler,
+  Droplets, Gauge, Thermometer, Wind, CloudRain, Ruler, Zap,
 } from 'lucide-react'
 import SensorCard from './SensorCard'
 
@@ -11,9 +11,10 @@ const calcTrend = (current, prev) => {
   return { trend: diff > 0 ? 'up' : 'down', trendValue: diff }
 }
 
-const SensorGrid = ({ latest, previous, getStatus }) => {
+const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, onSensorSelect }) => {
   const phTrend  = calcTrend(latest?.ph,         previous?.ph)
   const tdsTrend = calcTrend(latest?.tds,         previous?.tds)
+  const ecTrend  = calcTrend(latest?.ec,          previous?.ec)
   const wtTrend  = calcTrend(latest?.waterTemp,   previous?.waterTemp)
   const atTrend  = calcTrend(latest?.airTemp,     previous?.airTemp)
   const humTrend = calcTrend(latest?.humidity,    previous?.humidity)
@@ -21,6 +22,7 @@ const SensorGrid = ({ latest, previous, getStatus }) => {
 
   const cards = [
     {
+      key: 'ph',
       icon: Droplets,
       label: 'pH Level',
       value: latest?.ph?.toFixed(2),
@@ -32,6 +34,7 @@ const SensorGrid = ({ latest, previous, getStatus }) => {
       ...phTrend,
     },
     {
+      key: 'tds',
       icon: Gauge,
       label: 'TDS',
       value: latest?.tds,
@@ -43,6 +46,19 @@ const SensorGrid = ({ latest, previous, getStatus }) => {
       ...tdsTrend,
     },
     {
+      key: 'ec',
+      icon: Zap,
+      label: 'EC',
+      value: latest?.ec?.toFixed(2),
+      unit: 'mS/cm',
+      status: getStatus('ec', latest?.ec),
+      subLabel: 'Electrical Conductivity',
+      iconColor: 'text-yellow-400',
+      iconBg: 'bg-yellow-500/10 border-yellow-500/20',
+      ...ecTrend,
+    },
+    {
+      key: 'waterTemp',
       icon: Thermometer,
       label: 'Water Temp',
       value: latest?.waterTemp?.toFixed(1),
@@ -54,6 +70,7 @@ const SensorGrid = ({ latest, previous, getStatus }) => {
       ...wtTrend,
     },
     {
+      key: 'airTemp',
       icon: Wind,
       label: 'Air Temp',
       value: latest?.airTemp?.toFixed(1),
@@ -65,6 +82,7 @@ const SensorGrid = ({ latest, previous, getStatus }) => {
       ...atTrend,
     },
     {
+      key: 'humidity',
       icon: CloudRain,
       label: 'Air Humidity',
       value: latest?.humidity,
@@ -76,6 +94,7 @@ const SensorGrid = ({ latest, previous, getStatus }) => {
       ...humTrend,
     },
     {
+      key: 'waterLevel',
       icon: Ruler,
       label: 'Water Level',
       value: latest?.waterLevel?.toFixed(1),
@@ -94,11 +113,25 @@ const SensorGrid = ({ latest, previous, getStatus }) => {
         <h2 className="text-sm font-semibold text-zinc-400 tracking-widest uppercase">
           Live Sensor Readings
         </h2>
-        <span className="text-xs text-zinc-600 tabular-nums">6 sensors active</span>
+        <div className="flex items-center gap-3">
+          {isConnected && (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Hardware Connected
+            </span>
+          )}
+          <span className="text-xs text-zinc-600 tabular-nums">7 sensors · Tap to view graph</span>
+        </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 relative">
         {cards.map((card) => (
-          <SensorCard key={card.label} {...card} />
+          <SensorCard
+            key={card.key}
+            {...card}
+            isConnected={isConnected}
+            selected={selectedSensor === card.key}
+            onClick={() => onSensorSelect(selectedSensor === card.key ? null : card.key)}
+          />
         ))}
       </div>
     </section>

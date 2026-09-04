@@ -1,17 +1,20 @@
 // src/App.jsx
-import Header            from './components/Header'
-import SensorGrid        from './components/SensorGrid'
-import WaterChemistryChart  from './components/WaterChemistryChart'
-import EnvironmentalChart   from './components/EnvironmentalChart'
-import ControlPanel      from './components/ControlPanel'
-import SystemLogs        from './components/SystemLogs'
-import ThresholdSettings from './components/ThresholdSettings'
-import { useSensorData } from './hooks/useSensorData'
-import { useThresholds } from './hooks/useThresholds'
+import { useState } from 'react'
+import Header             from './components/Header'
+import SensorGrid         from './components/SensorGrid'
+import SensorDetailChart  from './components/SensorDetailChart'
+import WaterChemistryChart   from './components/WaterChemistryChart'
+import EnvironmentalChart    from './components/EnvironmentalChart'
+import ControlPanel       from './components/ControlPanel'
+import SystemLogs         from './components/SystemLogs'
+import ThresholdSettings  from './components/ThresholdSettings'
+import DownloadButton     from './components/DownloadButton'
+import { useSensorData }  from './hooks/useSensorData'
+import { useThresholds }  from './hooks/useThresholds'
 
 function App() {
   const {
-    latest, history, logs, isConnected, lastUpdated, addLog,
+    latest, previous, history, logs, isConnected, lastUpdated, addLog,
   } = useSensorData()
 
   const {
@@ -19,7 +22,7 @@ function App() {
     saveThresholds, resetThresholds, saving, saveStatus,
   } = useThresholds()
 
-  const previous = history.length >= 2 ? history[history.length - 2] : null
+  const [selectedSensor, setSelectedSensor] = useState(null)
 
   return (
     <div className="min-h-screen bg-zinc-950 bg-[radial-gradient(ellipse_at_top,_rgba(16,185,129,0.04)_0%,_transparent_60%)] p-4 md:p-6 lg:p-8">
@@ -28,13 +31,38 @@ function App() {
         {/* ─── Header ──────────────────────────────────────────────────── */}
         <Header isConnected={isConnected} lastUpdated={lastUpdated} />
 
+        {/* ─── Download Row ─────────────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-zinc-600 tabular-nums">
+            {history.length} readings stored in memory
+            {history.length > 0 && ` · ${new Date(history[0]?.rawTime).toLocaleString()} → Now`}
+          </div>
+          <DownloadButton history={history} />
+        </div>
+
         {/* ─── Sensor Cards Grid ───────────────────────────────────────── */}
-        <SensorGrid latest={latest} previous={previous} getStatus={getStatus} />
+        <SensorGrid
+          latest={latest}
+          previous={previous}
+          getStatus={getStatus}
+          isConnected={isConnected}
+          selectedSensor={selectedSensor}
+          onSensorSelect={setSelectedSensor}
+        />
+
+        {/* ─── Single Sensor Detail Chart (shown when card is tapped) ─── */}
+        {selectedSensor && (
+          <SensorDetailChart
+            sensorKey={selectedSensor}
+            history={history}
+            onClose={() => setSelectedSensor(null)}
+          />
+        )}
 
         {/* ─── Charts Row ──────────────────────────────────────────────── */}
         <section>
           <h2 className="text-sm font-semibold text-zinc-400 tracking-widest uppercase mb-4">
-            Analytics & Time-Series
+            Analytics &amp; Time-Series
           </h2>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <WaterChemistryChart history={history} />
@@ -45,7 +73,7 @@ function App() {
         {/* ─── Alert Thresholds + Logs ─────────────────────────────────── */}
         <section>
           <h2 className="text-sm font-semibold text-zinc-400 tracking-widest uppercase mb-4">
-            Alert Settings & System Events
+            Alert Settings &amp; System Events
           </h2>
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             <ThresholdSettings
@@ -81,7 +109,7 @@ function App() {
                 </h3>
                 <p className="text-xs text-zinc-500 mt-1">Smart IoT Sensor Monitoring</p>
                 <p className="text-xs text-zinc-700 mt-3 font-mono">
-                  Polling every 3s · MongoDB Atlas · ESP32
+                  Polling every 2s · MongoDB Atlas · ESP32 · {history.length} pts stored
                 </p>
               </div>
             </div>
@@ -90,7 +118,7 @@ function App() {
 
         {/* ─── Footer ──────────────────────────────────────────────────── */}
         <footer className="text-center text-xs text-zinc-700 pb-2 font-mono">
-          NutriFlow v1.0 · Polling every 3s · {new Date().getFullYear()}
+          NutriFlow v2.0 · Polling every 2s · {new Date().getFullYear()} · 7 sensors · EC enabled
         </footer>
 
       </div>

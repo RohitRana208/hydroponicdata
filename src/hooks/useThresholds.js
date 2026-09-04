@@ -11,12 +11,13 @@ import axios from 'axios'
 const BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined ? import.meta.env.VITE_API_BASE_URL : ''
 
 export const DEFAULT_THRESHOLDS = {
-  ph:         { min: 6.5,  max: 7.5,  unit: 'pH',  label: 'pH Level',         enabled: true },
-  tds:        { min: 50,   max: 400,  unit: 'PPM', label: 'TDS',               enabled: true },
-  waterTemp:  { min: 18.0, max: 28.0, unit: '°C',  label: 'Water Temperature', enabled: true },
-  airTemp:    { min: 15.0, max: 40.0, unit: '°C',  label: 'Air Temperature',   enabled: false },
-  humidity:   { min: 40,   max: 85,   unit: '%',   label: 'Air Humidity',      enabled: true },
-  waterLevel: { min: 8.0,  max: 100,  unit: 'cm',  label: 'Water Level',       enabled: true },
+  ph:         { min: 6.5,  max: 7.5,  unit: 'pH',    label: 'pH Level',             enabled: true },
+  tds:        { min: 50,   max: 400,  unit: 'PPM',   label: 'TDS',                  enabled: true },
+  ec:         { min: 0.5,  max: 3.5,  unit: 'mS/cm', label: 'EC (Electrical Cond.)', enabled: true },
+  waterTemp:  { min: 18.0, max: 28.0, unit: '°C',    label: 'Water Temperature',    enabled: true },
+  airTemp:    { min: 15.0, max: 40.0, unit: '°C',    label: 'Air Temperature',      enabled: false },
+  humidity:   { min: 40,   max: 85,   unit: '%',     label: 'Air Humidity',         enabled: true },
+  waterLevel: { min: 8.0,  max: 100,  unit: 'cm',    label: 'Water Level',          enabled: true },
 }
 
 // Load saved thresholds from localStorage

@@ -33,22 +33,38 @@ const SensorCard = ({
   subLabel,
   iconColor = 'text-emerald-400',
   iconBg = 'bg-emerald-500/10 border-emerald-500/20',
-  trend,       // 'up' | 'down' | 'stable'
+  trend,
   trendValue,
+  isConnected = false,
+  selected = false,
+  onClick,
 }) => {
   const cfg = statusConfig[status] || statusConfig.normal
 
   const TrendIcon = trend === 'up' ? TrendingUp : trend === 'down' ? TrendingDown : Minus
   const trendColor =
-    trend === 'up' ? 'text-rose-400' :
-    trend === 'down' ? 'text-sky-400' :
+    trend === 'up'   ? 'text-rose-400' :
+    trend === 'down' ? 'text-sky-400'  :
     'text-zinc-500'
+
+  // Border styling: selected = blue ring, connected = green border, default = zinc
+  const borderStyle = selected
+    ? 'border-2 border-blue-400 shadow-[0_0_14px_rgba(96,165,250,0.35)]'
+    : isConnected
+    ? 'border border-emerald-500/70 shadow-[0_0_10px_rgba(16,185,129,0.20)]'
+    : 'border border-zinc-700/50'
 
   return (
     <div
-      className="glass-card-hover p-5 flex flex-col gap-4 cursor-default"
+      onClick={onClick}
+      className={`glass-card-hover p-5 flex flex-col gap-4 cursor-pointer transition-all duration-200 rounded-2xl ${borderStyle}`}
       style={{ background: `linear-gradient(135deg, rgba(24,24,27,0.7) 0%, ${cfg.glow} 100%)` }}
     >
+      {/* Connected indicator dot */}
+      {isConnected && (
+        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse" />
+      )}
+
       {/* Top row: icon + status */}
       <div className="flex items-start justify-between">
         <div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${iconBg}`}>
@@ -84,6 +100,11 @@ const SensorCard = ({
           </span>
           <span className="text-zinc-600 ml-0.5">vs prev</span>
         </div>
+      )}
+
+      {/* Tap hint */}
+      {selected && (
+        <p className="text-xs text-blue-400 font-medium mt-auto">📊 Showing in graph ↓</p>
       )}
     </div>
   )
