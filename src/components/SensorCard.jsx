@@ -47,22 +47,28 @@ const SensorCard = ({
     trend === 'down' ? 'text-sky-400'  :
     'text-zinc-500'
 
-  // Border styling: selected = blue ring, connected = green border, default = zinc
-  const borderStyle = selected
-    ? 'border-2 border-blue-400 shadow-[0_0_14px_rgba(96,165,250,0.35)]'
-    : isConnected
-    ? 'border border-emerald-500/70 shadow-[0_0_10px_rgba(16,185,129,0.20)]'
-    : 'border border-zinc-700/50'
-
   return (
     <div
       onClick={onClick}
-      className={`glass-card-hover p-5 flex flex-col gap-4 cursor-pointer transition-all duration-200 rounded-2xl ${borderStyle}`}
-      style={{ background: `linear-gradient(135deg, rgba(24,24,27,0.7) 0%, ${cfg.glow} 100%)` }}
+      className="relative p-5 flex flex-col gap-4 cursor-pointer transition-all duration-200 rounded-2xl backdrop-blur-md"
+      style={{
+        background: `linear-gradient(135deg, rgba(24,24,27,0.85) 0%, ${cfg.glow} 100%)`,
+        boxShadow: selected
+          ? '0 0 0 2px #60a5fa, 0 0 18px rgba(96,165,250,0.35)'
+          : isConnected
+          ? '0 0 0 1.5px rgba(16,185,129,0.7), 0 0 12px rgba(16,185,129,0.2)'
+          : '0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+        border: selected
+          ? '2px solid transparent'
+          : isConnected
+          ? '1px solid rgba(16,185,129,0.5)'
+          : '1px solid rgba(63,63,70,0.6)',
+      }}
     >
-      {/* Connected indicator dot */}
+      {/* Green pulse dot when connected */}
       {isConnected && (
-        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.8)] animate-pulse" />
+        <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-emerald-400 animate-pulse"
+          style={{ boxShadow: '0 0 6px rgba(16,185,129,0.9)' }} />
       )}
 
       {/* Top row: icon + status */}
@@ -102,9 +108,9 @@ const SensorCard = ({
         </div>
       )}
 
-      {/* Tap hint */}
+      {/* Tap hint when selected */}
       {selected && (
-        <p className="text-xs text-blue-400 font-medium mt-auto">📊 Showing in graph ↓</p>
+        <p className="text-xs text-blue-400 font-medium">📊 Showing in graph ↓</p>
       )}
     </div>
   )
