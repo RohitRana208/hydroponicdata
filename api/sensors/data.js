@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
     const doc = {
       ph:         Number(body.ph         ?? 7.0),
-      tds:        Number(body.tds        ?? 300),
+      tds:        Number(body.tds        ?? 0),
       ec:         Number(body.ec         ?? 0),
       waterTemp:  Number(body.waterTemp  ?? 25.0),
       airTemp:    Number(body.airTemp    ?? 28.0),
@@ -42,7 +42,17 @@ export default async function handler(req, res) {
     }
 
     const result = await db.collection('sensorreadings').insertOne(doc)
-    return res.status(201).json({ success: true, id: result.insertedId, message: 'Data saved to MongoDB Atlas' })
+
+    // Check if on-demand photo capture is requested from dashboard
+    const camState = await db.collection('cameracontrol').findOne({ _id: 'global_state' })
+    const captureRequested = camState?.captureRequested || false
+
+    return res.status(201).json({
+      success: true,
+      id: result.insertedId,
+      captureRequested: captureRequested,
+      message: 'Data saved to MongoDB Atlas',
+    })
   } catch (err) {
     return res.status(500).json({ error: 'Database query error', details: err.message })
   }

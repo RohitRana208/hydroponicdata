@@ -1,0 +1,46 @@
+// api/camera/latest.js — Native Vercel Function (ES Modules)
+import { MongoClient } from 'mongodb'
+
+let cachedClient = null
+const getDb = async () => {
+  if (cachedClient) return cachedClient.db('hydrocore')
+  const uri = process.env.MONGO_URI || "mongodb+srv://devansh:devansh@cluster0.tlrcezo.mongodb.net/hydrocore?retryWrites=true&w=majority&appName=Cluster0"
+  cachedClient = new MongoClient(uri, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000 })
+  await cachedClient.connect()
+  return cachedClient.db('hydrocore')
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  if (req.method === 'OPTIONS') return res.status(200).end()
+
+  try {
+    const db = await getDb()
+    const latest = await db.collection('plantimages')
+      .find({})
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .toArray()
+
+    if (!latest || latest.length === 0) {
+      return res.status(200).json({
+        exists: false,
+        message: 'No plant photos uploaded yet',
+      })
+    }
+
+    const doc = latest[0]
+    return res.status(200).json({
+      exists: true,
+      _id: doc._id,
+      image: doc.image,
+      trigger: doc.trigger,
+      sizeKB: doc.sizeKB,
+      createdAt: doc.createdAt,
+    })
+  } catch (err) {
+    return res.status(500).json({ error: err.message })
+  }
+}

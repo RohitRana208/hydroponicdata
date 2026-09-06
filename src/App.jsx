@@ -3,6 +3,7 @@ import { useState } from 'react'
 import Header             from './components/Header'
 import SensorGrid         from './components/SensorGrid'
 import SensorDetailChart  from './components/SensorDetailChart'
+import PlantCameraSection from './components/PlantCameraSection'
 import WaterChemistryChart   from './components/WaterChemistryChart'
 import EnvironmentalChart    from './components/EnvironmentalChart'
 import ControlPanel       from './components/ControlPanel'
@@ -11,6 +12,7 @@ import ThresholdSettings  from './components/ThresholdSettings'
 import DownloadButton     from './components/DownloadButton'
 import { useSensorData }  from './hooks/useSensorData'
 import { useThresholds }  from './hooks/useThresholds'
+import { usePlantCamera } from './hooks/usePlantCamera'
 import { useTheme }       from './hooks/useTheme'
 
 function App() {
@@ -23,6 +25,11 @@ function App() {
     thresholds, getStatus, updateThreshold,
     saveThresholds, resetThresholds, saving, saveStatus,
   } = useThresholds()
+
+  const {
+    latestPhoto, gallery, isLoading: camLoading,
+    isCapturing, triggerCapture,
+  } = usePlantCamera(addLog)
 
   const { theme, toggleTheme, isDark } = useTheme()
 
@@ -75,6 +82,15 @@ function App() {
             onClose={() => setSelectedSensor(null)}
           />
         )}
+
+        {/* ─── Plant Vision & Camera Growth Monitoring Section ─── */}
+        <PlantCameraSection
+          latestPhoto={latestPhoto}
+          gallery={gallery}
+          isLoading={camLoading}
+          isCapturing={isCapturing}
+          onCaptureNow={triggerCapture}
+        />
 
         {/* Charts Row */}
         <section>
@@ -146,7 +162,7 @@ function App() {
                   Smart IoT Hydroponic Monitoring System
                 </p>
                 <div className="flex items-center justify-center gap-2 mt-3 text-xs text-slate-400 dark:text-zinc-500 font-mono">
-                  <span>ESP32-S3</span> · <span>MongoDB Atlas</span> · <span>7 Sensors</span>
+                  <span>ESP32-S3 CAM</span> · <span>MongoDB Atlas</span> · <span>7 Sensors</span>
                 </div>
               </div>
             </div>
@@ -155,7 +171,7 @@ function App() {
 
         {/* Footer */}
         <footer className="text-center text-xs text-slate-400 dark:text-zinc-600 pb-3 font-mono">
-          NutriFlow v2.2 · White &amp; Emerald Green Theme · {new Date().getFullYear()}
+          NutriFlow v2.5 · Plant Vision &amp; Hydroponic Core · {new Date().getFullYear()}
         </footer>
 
       </div>
