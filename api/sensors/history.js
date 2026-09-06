@@ -18,19 +18,28 @@ export default async function handler(req, res) {
 
   try {
     const db = await getDb()
-    const limit = Math.min(parseInt(req.query.limit) || 500, 100000)
-    const hours = parseInt(req.query.hours) || null
+    const limit = Math.min(parseInt(req.query.limit) || 2000, 100000)
+    const hours = req.query.hours ? parseFloat(req.query.hours) : null
 
     let query = {}
-    if (hours) {
-      query.createdAt = { $gte: new Date(Date.now() - hours * 60 * 60 * 1000) }
+    if (hours && hours > 0) {
+      query.createdAt = { $gte: new Date(Date.now() - hours * 3600000) }
     }
 
-    const docs = await db.collection('sensorreadings')
+    let docs = await db.collection('sensorreadings')
       .find(query)
       .sort({ createdAt: -1 })
       .limit(limit)
       .toArray()
+
+    // If hours filter returned 0 docs (e.g. hardware was offline for a while), return the most recent available readings
+    if (docs.length === 0) {
+      docs = await db.collection('sensorreadings')
+        .find({})
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .toArray()
+    }
 
     return res.status(200).json(docs.reverse())
   } catch (err) {

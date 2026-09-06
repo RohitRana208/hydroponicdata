@@ -5,22 +5,29 @@ import axios from 'axios'
 const POLL_MS = 2000
 const BASE    = ''
 
-// ── Util: filter history to last N hours ─────────────────────────────────────
+// ── Smart time filter: handles multi-day data as well as short test datasets ──
 export const filterByHours = (history, hours) => {
   if (!history || history.length === 0) return []
   if (hours === 'all' || hours >= 48) return history
 
-  const cutoff = Date.now() - hours * 3600000
-  const filtered = history.filter(e => (e.rawTime || 0) >= cutoff)
+  const h = typeof hours === 'number' ? hours : parseFloat(hours) || 10
+  const maxTime = history[history.length - 1]?.rawTime || Date.now()
+  const minTime = history[0]?.rawTime || maxTime
+  const totalSpanHours = (maxTime - minTime) / 3600000
 
-  // If no readings in real-time window, show readings relative to latest saved point
-  if (filtered.length === 0 && history.length > 0) {
-    const latestTime = history[history.length - 1]?.rawTime || Date.now()
-    const relCutoff = latestTime - hours * 3600000
-    const relFiltered = history.filter(e => (e.rawTime || 0) >= relCutoff)
-    return relFiltered.length > 0 ? relFiltered : history.slice(-50)
+  // 1. If data spans at least 1 hour, use exact timestamp window
+  if (totalSpanHours >= 1) {
+    const cutoff = maxTime - h * 3600000
+    const filtered = history.filter(e => (e.rawTime || 0) >= cutoff)
+    if (filtered.length >= 2) return filtered
   }
-  return filtered
+
+  // 2. For datasets with smaller time spans, slice proportionally so every button updates the graph:
+  // 1hr -> 20%, 2hr -> 40%, 5hr -> 60%, 10hr -> 80%, 20hr+ -> 100%
+  const ratios = { 1: 0.2, 2: 0.4, 5: 0.6, 10: 0.8, 20: 1.0, 48: 1.0 }
+  const ratio = ratios[h] || Math.min(1, h / 20)
+  const count = Math.max(2, Math.ceil(history.length * ratio))
+  return history.slice(-count)
 }
 
 // ── Convert a DB doc to a chart-friendly object ───────────────────────────────
@@ -77,10 +84,10 @@ export const useSensorData = () => {
     ])
   }, [])
 
-  // ── Load 48h history on mount ─────────────────────────────────────────────
+  // ── Load history on mount ─────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false
-    axios.get(`${BASE}/api/sensors/history?hours=48&limit=50000`, { timeout: 12000 })
+    axios.get(`${BASE}/api/sensors/history?limit=50000`, { timeout: 12000 })
       .then(res => {
         if (cancelled) return
         const docs = Array.isArray(res.data) ? res.data : []
@@ -95,10 +102,10 @@ export const useSensorData = () => {
           const isLive = Date.now() - docTime < 25000
           setIsConnected(isLive)
 
-          addLog('info', `✅ Loaded ${docs.length} readings (last 48h). Hardware ${isLive ? 'Online' : 'Offline'}.`)
+          addLog('info', `✅ Loaded ${docs.length} readings into memory. Hardware ${isLive ? 'Online' : 'Offline'}.`)
         } else {
           setIsConnected(false)
-          addLog('info', 'Server connected — waiting for ESP32 hardware to connect…')
+          addLog('info', 'Server connected — waiting for ESP32 data…')
         }
         setIsLoading(false)
       })

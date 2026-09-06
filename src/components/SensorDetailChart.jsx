@@ -14,7 +14,7 @@ const TIME_RANGES = [
   { label: '5 hr',  hours: 5  },
   { label: '10 hr', hours: 10 },
   { label: '20 hr', hours: 20 },
-  { label: '48 hr', hours: 48 },
+  { label: 'All',   hours: 48 },
 ]
 
 const SENSOR_META = {
@@ -58,9 +58,6 @@ const SensorDetailChart = ({ sensorKey, history = [], onClose }) => {
 
   const filteredData = useMemo(() => {
     let data = filterByHours(history, selectedHours)
-    if (!data || data.length === 0) {
-      data = history.slice(-50)
-    }
     data = data.filter(d => typeof d[sensorKey] === 'number' && !isNaN(d[sensorKey]))
     if (data.length > 250) {
       const step = Math.ceil(data.length / 250)
@@ -70,6 +67,7 @@ const SensorDetailChart = ({ sensorKey, history = [], onClose }) => {
   }, [history, selectedHours, sensorKey])
 
   const gradId = `grad-${sensorKey}`
+  const timeLabel = selectedHours >= 48 ? 'All' : `${selectedHours} hr`
 
   // Stats
   const values = filteredData.map(d => d[sensorKey]).filter(v => typeof v === 'number')
@@ -99,7 +97,7 @@ const SensorDetailChart = ({ sensorKey, history = [], onClose }) => {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-zinc-500">
-              {filteredData.length} data points in time window
+              {filteredData.length} data points ({timeLabel} view)
             </p>
           </div>
         </div>
@@ -118,9 +116,9 @@ const SensorDetailChart = ({ sensorKey, history = [], onClose }) => {
               <button
                 key={r.hours}
                 onClick={() => setSelectedHours(r.hours)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   selectedHours === r.hours
-                    ? 'bg-white dark:bg-blue-500/25 text-blue-700 dark:text-blue-300 border border-slate-200 dark:border-blue-500/50 shadow-sm font-semibold'
+                    ? 'bg-white dark:bg-blue-500/25 text-blue-700 dark:text-blue-300 border border-slate-200 dark:border-blue-500/50 shadow-sm'
                     : 'text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
                 }`}
               >
@@ -145,7 +143,7 @@ const SensorDetailChart = ({ sensorKey, history = [], onClose }) => {
         {filteredData.length === 0 ? (
           <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-zinc-500 text-sm font-mono border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl">
             <Calendar className="w-6 h-6 text-slate-400 dark:text-zinc-600" />
-            <span>No data available for {meta.label} in selected range.</span>
+            <span>No data available for {meta.label} in {timeLabel} window.</span>
             <span className="text-xs text-slate-400 dark:text-zinc-600">Hardware connect hone par data yahan stream hoga.</span>
           </div>
         ) : (

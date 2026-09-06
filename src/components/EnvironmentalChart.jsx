@@ -13,6 +13,7 @@ const TIME_RANGES = [
   { label: '5 hr',  hours: 5  },
   { label: '10 hr', hours: 10 },
   { label: '20 hr', hours: 20 },
+  { label: 'All',   hours: 48 },
 ]
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -36,20 +37,14 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null
 }
 
-const EnvironmentalChart = ({ history }) => {
+const EnvironmentalChart = ({ history = [] }) => {
   const [selectedHours, setSelectedHours] = useState(10)
 
   const data = useMemo(() => {
-    let filtered = filterByHours(history, selectedHours)
-    if (!filtered || filtered.length === 0) {
-      filtered = history.slice(-50)
-    }
-    if (filtered.length > 300) {
-      const step = Math.ceil(filtered.length / 300)
-      return filtered.filter((_, i) => i % step === 0 || i === filtered.length - 1)
-    }
-    return filtered
+    return filterByHours(history, selectedHours)
   }, [history, selectedHours])
+
+  const timeLabel = selectedHours >= 48 ? 'All' : `${selectedHours} hr`
 
   return (
     <div className="glass-card p-5 flex flex-col gap-4">
@@ -60,7 +55,9 @@ const EnvironmentalChart = ({ history }) => {
           </div>
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-slate-200">Environmental Trends</h3>
-            <p className="text-xs text-slate-500 dark:text-zinc-500">Temp · Humidity · Water Level ({data.length} pts)</p>
+            <p className="text-xs text-slate-500 dark:text-zinc-500">
+              Temp · Humidity · Water Level ({data.length} pts · {timeLabel} view)
+            </p>
           </div>
         </div>
 
@@ -84,9 +81,9 @@ const EnvironmentalChart = ({ history }) => {
               <button
                 key={r.hours}
                 onClick={() => setSelectedHours(r.hours)}
-                className={`px-2 py-0.5 rounded-lg text-xs font-medium transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
                   selectedHours === r.hours
-                    ? 'bg-white dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-slate-200 dark:border-orange-500/40 shadow-sm font-semibold'
+                    ? 'bg-white dark:bg-orange-500/20 text-orange-700 dark:text-orange-300 border border-slate-200 dark:border-orange-500/40 shadow-sm'
                     : 'text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200'
                 }`}
               >
@@ -98,43 +95,49 @@ const EnvironmentalChart = ({ history }) => {
       </div>
 
       <div className="w-full h-56 min-h-[220px]">
-        <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={200}>
-          <AreaChart data={data} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="waterTempGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#0284c7" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#0284c7" stopOpacity={0}    />
-              </linearGradient>
-              <linearGradient id="airTempGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#ea580c" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#ea580c" stopOpacity={0}    />
-              </linearGradient>
-              <linearGradient id="humidityGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#0891b2" stopOpacity={0.2}  />
-                <stop offset="95%" stopColor="#0891b2" stopOpacity={0}    />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
-            <XAxis
-              dataKey="time"
-              tick={{ fill: '#64748b', fontSize: 10 }}
-              tickLine={false}
-              axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
-              interval="preserveStartEnd"
-            />
-            <YAxis
-              domain={['auto', 'auto']}
-              tick={{ fill: '#64748b', fontSize: 10 }}
-              tickLine={false}
-              axisLine={false}
-              width={28}
-            />
-            <Tooltip content={<CustomTooltip />} />
-            <Area type="monotone" dataKey="waterTemp" name="Water Temp" stroke="#0284c7" strokeWidth={2} fill="url(#waterTempGrad)" dot={false} activeDot={{ r: 4, fill: '#0284c7', strokeWidth: 0 }} />
-            <Area type="monotone" dataKey="airTemp"   name="Air Temp"   stroke="#ea580c" strokeWidth={2} fill="url(#airTempGrad)"   dot={false} activeDot={{ r: 4, fill: '#ea580c', strokeWidth: 0 }} />
-            <Area type="monotone" dataKey="humidity"  name="Humidity"   stroke="#0891b2" strokeWidth={2} fill="url(#humidityGrad)"  dot={false} activeDot={{ r: 4, fill: '#0891b2', strokeWidth: 0 }} />
-          </AreaChart>
-        </ResponsiveContainer>
+        {data.length === 0 ? (
+          <div className="w-full h-full flex items-center justify-center text-xs text-slate-400 dark:text-zinc-600 font-mono">
+            No readings found for {timeLabel} window
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={200}>
+            <AreaChart data={data} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="waterTempGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#0284c7" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#0284c7" stopOpacity={0}    />
+                </linearGradient>
+                <linearGradient id="airTempGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#ea580c" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#ea580c" stopOpacity={0}    />
+                </linearGradient>
+                <linearGradient id="humidityGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#0891b2" stopOpacity={0.2}  />
+                  <stop offset="95%" stopColor="#0891b2" stopOpacity={0}    />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
+              <XAxis
+                dataKey="time"
+                tick={{ fill: '#64748b', fontSize: 10 }}
+                tickLine={false}
+                axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                domain={['auto', 'auto']}
+                tick={{ fill: '#64748b', fontSize: 10 }}
+                tickLine={false}
+                axisLine={false}
+                width={28}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <Area type="monotone" dataKey="waterTemp" name="Water Temp" stroke="#0284c7" strokeWidth={2} fill="url(#waterTempGrad)" dot={data.length <= 20 ? { r: 3, fill: '#0284c7' } : false} activeDot={{ r: 4, fill: '#0284c7', strokeWidth: 0 }} />
+              <Area type="monotone" dataKey="airTemp"   name="Air Temp"   stroke="#ea580c" strokeWidth={2} fill="url(#airTempGrad)"   dot={data.length <= 20 ? { r: 3, fill: '#ea580c' } : false} activeDot={{ r: 4, fill: '#ea580c', strokeWidth: 0 }} />
+              <Area type="monotone" dataKey="humidity"  name="Humidity"   stroke="#0891b2" strokeWidth={2} fill="url(#humidityGrad)"  dot={data.length <= 20 ? { r: 3, fill: '#0891b2' } : false} activeDot={{ r: 4, fill: '#0891b2', strokeWidth: 0 }} />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   )
