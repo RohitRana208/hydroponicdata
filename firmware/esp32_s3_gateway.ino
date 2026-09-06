@@ -1,5 +1,5 @@
 // ============================================================================
-// NutriFlow ESP32-S3 CAM — Cloud Gateway, TDS Sensor & Plant Vision Firmware
+// NutriFlow ESP32-S3 CAM — Multi-Board Auto-Detecting Camera & Sensor Firmware
 // ============================================================================
 
 #include <WiFi.h>
@@ -9,29 +9,11 @@
 #include "esp_camera.h"
 #include "mbedtls/base64.h"
 
-// ─── Pin Configuration ───────────────────────────────────────────────────────
-#define TDS_PIN 4
-#define TX_PIN 17  // ESP32 TX -> Arduino A1 (RX)
-#define RX_PIN 18  // ESP32 RX -> Arduino A2 (TX)
-
-// ─── Camera Pinout Profile 1: Standard AI-Thinker / Generic ESP32-S3 CAM ────
-#define PWDN_GPIO_NUM     -1
-#define RESET_GPIO_NUM    -1
-#define XCLK_GPIO_NUM     10
-#define SIOD_GPIO_NUM     21
-#define SIOC_GPIO_NUM     14
-
-#define Y9_GPIO_NUM       11
-#define Y8_GPIO_NUM       9
-#define Y7_GPIO_NUM       8
-#define Y6_GPIO_NUM       6
-#define Y5_GPIO_NUM       4
-#define Y4_GPIO_NUM       5
-#define Y3_GPIO_NUM       7
-#define Y2_GPIO_NUM       15
-#define VSYNC_GPIO_NUM    13
-#define HREF_GPIO_NUM     12
-#define PCLK_GPIO_NUM     16
+// ─── Pin Configuration for TDS & UART ───────────────────────────────────────
+// Note: We use GPIO 1 for TDS so it never conflicts with Camera I2C lines (SIOD/SIOC)
+#define TDS_PIN 1   // Analog ADC1_CH0 (Safe on all S3 boards)
+#define TX_PIN  17  // ESP32 TX -> Arduino A1 (RX)
+#define RX_PIN  18  // ESP32 RX -> Arduino A2 (TX)
 
 // ─── WiFi & Cloud Endpoints ─────────────────────────────────────────────────
 const char* ssid          = "moto";
@@ -60,91 +42,161 @@ unsigned long lastUartPush    = 0;
 unsigned long lastPhotoUpload = 0;
 const unsigned long PHOTO_INTERVAL_MS = 30UL * 60UL * 1000UL; // 30 Minutes
 
-// ─── Initialize OV2640 Camera with Diagnostics ──────────────────────────────
-bool initCamera() {
-  Serial.println("\n[CAM] Checking PSRAM & Hardware...");
-  if (psramFound()) {
-    Serial.printf("[CAM] PSRAM Found: %d KB free\n", ESP.getFreePsram() / 1024);
-  } else {
-    Serial.println("[CAM] ⚠️ PSRAM not found (using internal DRAM for camera buffer)");
-  }
+// ─── Camera Pinout Profiles ─────────────────────────────────────────────────
 
-  camera_config_t config;
-  config.ledc_channel = LEDC_CHANNEL_0;
-  config.ledc_timer   = LEDC_TIMER_0;
-  config.pin_d0       = Y2_GPIO_NUM;
-  config.pin_d1       = Y3_GPIO_NUM;
-  config.pin_d2       = Y4_GPIO_NUM;
-  config.pin_d3       = Y5_GPIO_NUM;
-  config.pin_d4       = Y6_GPIO_NUM;
-  config.pin_d5       = Y7_GPIO_NUM;
-  config.pin_d6       = Y8_GPIO_NUM;
-  config.pin_d7       = Y9_GPIO_NUM;
-  config.pin_xclk     = XCLK_GPIO_NUM;
-  config.pin_pclk     = PCLK_GPIO_NUM;
-  config.pin_vsync    = VSYNC_GPIO_NUM;
-  config.pin_href     = HREF_GPIO_NUM;
-  config.pin_sccb_sda = SIOD_GPIO_NUM;
-  config.pin_sccb_scl = SIOC_GPIO_NUM;
-  config.pin_pwdn     = PWDN_GPIO_NUM;
-  config.pin_reset    = RESET_GPIO_NUM;
-  config.xclk_freq_hz = 20000000;
-  config.pixel_format = PIXFORMAT_JPEG;
-  
-  if (psramFound()) {
-    config.frame_size   = FRAMESIZE_SVGA; // 800x600 (High-Def Leaf Inspection)
-    config.jpeg_quality = 12;             // 10-63 (Lower means higher quality)
-    config.fb_count     = 2;
-    config.fb_location  = CAMERA_FB_IN_PSRAM;
-    config.grab_mode    = CAMERA_GRAB_LATEST;
-  } else {
-    config.frame_size   = FRAMESIZE_VGA;  // 640x480
-    config.jpeg_quality = 15;
-    config.fb_count     = 1;
-    config.fb_location  = CAMERA_FB_IN_DRAM;
-    config.grab_mode    = CAMERA_GRAB_WHEN_EMPTY;
-  }
-
-  esp_err_t err = esp_camera_init(&config);
-  if (err != ESP_OK) {
-    Serial.printf("❌ [CAM] Camera Init Failed with Error Code: 0x%x\n", err);
-    if (err == 0x105) Serial.println("   -> Tip: Check camera ribbon cable seating");
-    if (err == 0x103) Serial.println("   -> Tip: Pin conflict or PSRAM not enabled in Arduino Tools menu");
-    return false;
-  }
-
-  sensor_t * s = esp_camera_sensor_get();
-  if (s != NULL) {
-    s->set_brightness(s, 1);
-    s->set_contrast(s, 1);
-    s->set_saturation(s, 1);
-  }
-
-  Serial.println("✅ [CAM] OV2640 Camera Initialized Successfully!");
-  return true;
+// Profile 1: Freenove ESP32-S3 CAM / Waveshare / Generic Dual-USB S3 CAM
+camera_config_t getProfileFreenoveS3() {
+  camera_config_t c;
+  c.ledc_channel = LEDC_CHANNEL_0;
+  c.ledc_timer   = LEDC_TIMER_0;
+  c.pin_d0       = 11;
+  c.pin_d1       = 9;
+  c.pin_d2       = 8;
+  c.pin_d3       = 10;
+  c.pin_d4       = 12;
+  c.pin_d5       = 18;
+  c.pin_d6       = 17;
+  c.pin_d7       = 16;
+  c.pin_xclk     = 15;
+  c.pin_pclk     = 13;
+  c.pin_vsync    = 6;
+  c.pin_href     = 7;
+  c.pin_sccb_sda = 4;
+  c.pin_sccb_scl = 5;
+  c.pin_pwdn     = -1;
+  c.pin_reset    = -1;
+  c.xclk_freq_hz = 20000000;
+  c.pixel_format = PIXFORMAT_JPEG;
+  c.frame_size   = psramFound() ? FRAMESIZE_SVGA : FRAMESIZE_VGA;
+  c.jpeg_quality = psramFound() ? 12 : 15;
+  c.fb_count     = psramFound() ? 2 : 1;
+  c.fb_location  = psramFound() ? CAMERA_FB_IN_PSRAM : CAMERA_FB_IN_DRAM;
+  c.grab_mode    = CAMERA_GRAB_LATEST;
+  return c;
 }
 
-// ─── Capture & Upload Plant Snapshot to MongoDB Atlas ───────────────────────
+// Profile 2: AI-Thinker ESP32-S3 CAM / Generic S3 N8R8
+camera_config_t getProfileAIThinkerS3() {
+  camera_config_t c;
+  c.ledc_channel = LEDC_CHANNEL_0;
+  c.ledc_timer   = LEDC_TIMER_0;
+  c.pin_d0       = 15;
+  c.pin_d1       = 7;
+  c.pin_d2       = 5;
+  c.pin_d3       = 4;
+  c.pin_d4       = 6;
+  c.pin_d5       = 8;
+  c.pin_d6       = 9;
+  c.pin_d7       = 11;
+  c.pin_xclk     = 10;
+  c.pin_pclk     = 16;
+  c.pin_vsync    = 13;
+  c.pin_href     = 12;
+  c.pin_sccb_sda = 21;
+  c.pin_sccb_scl = 14;
+  c.pin_pwdn     = -1;
+  c.pin_reset    = -1;
+  c.xclk_freq_hz = 20000000;
+  c.pixel_format = PIXFORMAT_JPEG;
+  c.frame_size   = psramFound() ? FRAMESIZE_SVGA : FRAMESIZE_VGA;
+  c.jpeg_quality = psramFound() ? 12 : 15;
+  c.fb_count     = psramFound() ? 2 : 1;
+  c.fb_location  = psramFound() ? CAMERA_FB_IN_PSRAM : CAMERA_FB_IN_DRAM;
+  c.grab_mode    = CAMERA_GRAB_LATEST;
+  return c;
+}
+
+// Profile 3: Seeed Studio XIAO ESP32S3 Sense
+camera_config_t getProfileXiaoS3() {
+  camera_config_t c;
+  c.ledc_channel = LEDC_CHANNEL_0;
+  c.ledc_timer   = LEDC_TIMER_0;
+  c.pin_d0       = 15;
+  c.pin_d1       = 17;
+  c.pin_d2       = 18;
+  c.pin_d3       = 16;
+  c.pin_d4       = 14;
+  c.pin_d5       = 12;
+  c.pin_d6       = 11;
+  c.pin_d7       = 48;
+  c.pin_xclk     = 10;
+  c.pin_pclk     = 13;
+  c.pin_vsync    = 38;
+  c.pin_href     = 47;
+  c.pin_sccb_sda = 40;
+  c.pin_sccb_scl = 39;
+  c.pin_pwdn     = -1;
+  c.pin_reset    = -1;
+  c.xclk_freq_hz = 20000000;
+  c.pixel_format = PIXFORMAT_JPEG;
+  c.frame_size   = psramFound() ? FRAMESIZE_SVGA : FRAMESIZE_VGA;
+  c.jpeg_quality = psramFound() ? 12 : 15;
+  c.fb_count     = psramFound() ? 2 : 1;
+  c.fb_location  = psramFound() ? CAMERA_FB_IN_PSRAM : CAMERA_FB_IN_DRAM;
+  c.grab_mode    = CAMERA_GRAB_LATEST;
+  return c;
+}
+
+// ─── Smart Auto-Probing Camera Initialization ───────────────────────────────
+bool initCameraAuto() {
+  Serial.println("\n[CAM] Probing Camera Hardware...");
+  if (psramFound()) {
+    Serial.printf("[CAM] PSRAM Detected: %d KB free\n", ESP.getFreePsram() / 1024);
+  } else {
+    Serial.println("[CAM] ℹ️ Running without PSRAM (DRAM buffer)");
+  }
+
+  // 1. Try Freenove S3 Pinout (Most Common S3-WROOM CAM)
+  Serial.println("[CAM] Testing Profile 1 (Freenove / Generic S3 CAM)...");
+  camera_config_t config1 = getProfileFreenoveS3();
+  esp_err_t err = esp_camera_init(&config1);
+  if (err == ESP_OK) {
+    Serial.println("✅ [CAM] Profile 1 Matched: Camera Initialized (Freenove S3 Pinout)!");
+    return true;
+  }
+  Serial.printf("   Profile 1 failed (0x%x). De-initializing...\n", err);
+  esp_camera_deinit();
+  delay(100);
+
+  // 2. Try AI-Thinker S3 Pinout
+  Serial.println("[CAM] Testing Profile 2 (AI-Thinker S3 Pinout)...");
+  camera_config_t config2 = getProfileAIThinkerS3();
+  err = esp_camera_init(&config2);
+  if (err == ESP_OK) {
+    Serial.println("✅ [CAM] Profile 2 Matched: Camera Initialized (AI-Thinker S3 Pinout)!");
+    return true;
+  }
+  Serial.printf("   Profile 2 failed (0x%x). De-initializing...\n", err);
+  esp_camera_deinit();
+  delay(100);
+
+  // 3. Try Xiao S3 Pinout
+  Serial.println("[CAM] Testing Profile 3 (Xiao S3 Sense Pinout)...");
+  camera_config_t config3 = getProfileXiaoS3();
+  err = esp_camera_init(&config3);
+  if (err == ESP_OK) {
+    Serial.println("✅ [CAM] Profile 3 Matched: Camera Initialized (Xiao S3 Sense)!");
+    return true;
+  }
+  esp_camera_deinit();
+
+  Serial.println("❌ [CAM] All S3 Camera profiles failed.");
+  Serial.println("   -> Checklist: 1. Ensure camera ribbon cable is firmly inserted in connector.");
+  Serial.println("   -> 2. In Arduino IDE: Tools -> PSRAM -> 'OPI PSRAM'");
+  return false;
+}
+
+// ─── Capture & Upload Plant Snapshot to MongoDB ─────────────────────────────
 bool captureAndUploadPhoto(const char* triggerType) {
   if (!cameraReady) {
-    Serial.println("❌ [CAM] Cannot capture photo: Camera is not initialized on this board!");
+    Serial.println("❌ [CAM] Cannot capture: Camera probe was not successful on boot");
     return false;
   }
-  if (WiFi.status() != WL_CONNECTED) {
-    Serial.println("❌ [CAM] Cannot upload photo: WiFi is offline");
-    return false;
-  }
+  if (WiFi.status() != WL_CONNECTED) return false;
 
   Serial.printf("📸 [CAM] Capturing Photo (%s)...\n", triggerType);
   
-  // Discard older buffer to ensure fresh photo
   camera_fb_t * fb = esp_camera_fb_get();
-  if (fb) {
-    esp_camera_fb_return(fb);
-    delay(50);
-  }
-
-  fb = esp_camera_fb_get();
   if (!fb) {
     Serial.println("❌ [CAM] Frame buffer acquisition failed");
     return false;
@@ -152,7 +204,6 @@ bool captureAndUploadPhoto(const char* triggerType) {
 
   Serial.printf("📸 [CAM] Photo Captured: %d bytes (JPEG). Encoding Base64...\n", fb->len);
 
-  // Encode JPEG into Base64
   size_t output_len = 0;
   mbedtls_base64_encode(NULL, 0, &output_len, fb->buf, fb->len);
   
@@ -167,7 +218,6 @@ bool captureAndUploadPhoto(const char* triggerType) {
   b64_buffer[output_len] = '\0';
   esp_camera_fb_return(fb);
 
-  // Construct JSON Body
   String jsonBody = "{\"trigger\":\"" + String(triggerType) + "\",\"image\":\"data:image/jpeg;base64," + String((char*)b64_buffer) + "\"}";
   free(b64_buffer);
 
@@ -202,8 +252,8 @@ void setup() {
   Serial.println("  NutriFlow ESP32-S3 CAM Node Booting...  ");
   Serial.println("==========================================");
 
-  // 1. Initialize Camera
-  cameraReady = initCamera();
+  // 1. Initialize Camera with Auto-Pinout Matcher
+  cameraReady = initCameraAuto();
 
   // 2. Connect to WiFi
   Serial.printf("Connecting to WiFi '%s' ", ssid);
@@ -217,15 +267,13 @@ void setup() {
 
   if (WiFi.status() == WL_CONNECTED) {
     Serial.println("\n✅ WiFi Connected! IP: " + WiFi.localIP().toString());
-    
-    // Take initial boot snapshot
     if (cameraReady) {
       delay(1500);
       captureAndUploadPhoto("boot_init");
       lastPhotoUpload = millis();
     }
   } else {
-    Serial.println("\n❌ WiFi Connection Timeout. Will retry in loop.");
+    Serial.println("\n❌ WiFi Connection Timeout.");
   }
 }
 
