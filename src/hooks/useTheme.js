@@ -1,4 +1,4 @@
-// src/hooks/useTheme.js — Dark & Light Mode Controller with localStorage persistence
+// src/hooks/useTheme.js
 import { useState, useEffect, useCallback } from 'react'
 
 export const useTheme = () => {
@@ -6,9 +6,10 @@ export const useTheme = () => {
     try {
       const saved = localStorage.getItem('nutriflow_theme')
       if (saved === 'dark' || saved === 'light') return saved
-      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      // Default to light theme (white & green)
+      return 'light'
     } catch (_) {
-      return 'dark'
+      return 'light'
     }
   })
 
@@ -16,9 +17,7 @@ export const useTheme = () => {
     const root = document.documentElement
     if (theme === 'dark') {
       root.classList.add('dark')
-      root.classList.remove('light')
     } else {
-      root.classList.add('light')
       root.classList.remove('dark')
     }
     try {
@@ -32,8 +31,7 @@ export const useTheme = () => {
 
   return {
     theme,
-    isDark: theme === 'dark',
     toggleTheme,
-    setTheme,
+    isDark: theme === 'dark',
   }
 }

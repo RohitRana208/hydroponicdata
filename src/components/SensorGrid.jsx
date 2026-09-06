@@ -29,8 +29,8 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       unit: 'pH',
       status: getStatus('ph', latest?.ph),
       subLabel: 'Water acidity / alkalinity',
-      iconColor: 'text-emerald-400',
-      iconBg: 'bg-emerald-500/10 border-emerald-500/20',
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
+      iconBg: 'bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20',
       ...phTrend,
     },
     {
@@ -41,8 +41,8 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       unit: 'PPM',
       status: getStatus('tds', latest?.tds),
       subLabel: 'Total Dissolved Solids',
-      iconColor: 'text-violet-400',
-      iconBg: 'bg-violet-500/10 border-violet-500/20',
+      iconColor: 'text-violet-600 dark:text-violet-400',
+      iconBg: 'bg-violet-50 border-violet-200 dark:bg-violet-500/10 dark:border-violet-500/20',
       ...tdsTrend,
     },
     {
@@ -53,8 +53,8 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       unit: 'mS/cm',
       status: getStatus('ec', latest?.ec),
       subLabel: 'Electrical Conductivity',
-      iconColor: 'text-yellow-400',
-      iconBg: 'bg-yellow-500/10 border-yellow-500/20',
+      iconColor: 'text-amber-600 dark:text-yellow-400',
+      iconBg: 'bg-amber-50 border-amber-200 dark:bg-yellow-500/10 dark:border-yellow-500/20',
       ...ecTrend,
     },
     {
@@ -65,8 +65,8 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       unit: '°C',
       status: getStatus('waterTemp', latest?.waterTemp),
       subLabel: 'DS18B20 waterproof probe',
-      iconColor: 'text-sky-400',
-      iconBg: 'bg-sky-500/10 border-sky-500/20',
+      iconColor: 'text-sky-600 dark:text-sky-400',
+      iconBg: 'bg-sky-50 border-sky-200 dark:bg-sky-500/10 dark:border-sky-500/20',
       ...wtTrend,
     },
     {
@@ -77,8 +77,8 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       unit: '°C',
       status: getStatus('airTemp', latest?.airTemp),
       subLabel: 'DHT11 ambient reading',
-      iconColor: 'text-orange-400',
-      iconBg: 'bg-orange-500/10 border-orange-500/20',
+      iconColor: 'text-orange-600 dark:text-orange-400',
+      iconBg: 'bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/20',
       ...atTrend,
     },
     {
@@ -89,8 +89,8 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       unit: '%',
       status: getStatus('humidity', latest?.humidity),
       subLabel: 'DHT11 relative humidity',
-      iconColor: 'text-cyan-400',
-      iconBg: 'bg-cyan-500/10 border-cyan-500/20',
+      iconColor: 'text-cyan-600 dark:text-cyan-400',
+      iconBg: 'bg-cyan-50 border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-500/20',
       ...humTrend,
     },
     {
@@ -101,8 +101,8 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
       unit: 'cm',
       status: getStatus('waterLevel', latest?.waterLevel),
       subLabel: 'HC-SR04 ultrasonic sensor',
-      iconColor: 'text-teal-400',
-      iconBg: 'bg-teal-500/10 border-teal-500/20',
+      iconColor: 'text-teal-600 dark:text-teal-400',
+      iconBg: 'bg-teal-50 border-teal-200 dark:bg-teal-500/10 dark:border-teal-500/20',
       ...wlTrend,
     },
   ]
@@ -110,22 +110,22 @@ const SensorGrid = ({ latest, previous, getStatus, isConnected, selectedSensor, 
   return (
     <section>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h2 className="text-sm font-semibold text-zinc-400 tracking-widest uppercase">
+        <h2 className="text-xs font-bold text-slate-500 dark:text-zinc-400 tracking-widest uppercase">
           Live Sensor Readings
         </h2>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {isConnected ? (
-            <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              ESP32 Hardware Connected
+            <span className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 px-3 py-1 rounded-full shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              ESP32 Live Connected
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium bg-zinc-800/60 border border-zinc-700/40 px-2.5 py-1 rounded-full">
-              <span className="w-2 h-2 rounded-full bg-zinc-600" />
-              Hardware Offline (Showing Last Reading)
+            <span className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-zinc-400 font-medium bg-slate-100 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/40 px-3 py-1 rounded-full shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-slate-400 dark:bg-zinc-600" />
+              Hardware Offline (Last Reading)
             </span>
           )}
-          <span className="text-xs text-zinc-600 tabular-nums">7 sensors</span>
+          <span className="text-xs text-slate-400 dark:text-zinc-500 tabular-nums font-mono">7 sensors</span>
         </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
