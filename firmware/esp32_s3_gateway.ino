@@ -1,13 +1,6 @@
 // ============================================================================
 // NutriFlow ESP32-S3 CAM — Cloud Gateway, TDS Sensor & Plant Vision Firmware
 // ============================================================================
-// Features:
-// 1. Live TDS Sensor sampling on GPIO 4 (3.3V calibrated baseline).
-// 2. Bidirectional UART with Arduino Uno Master (9600 baud, TX=17, RX=18).
-// 3. Periodic Sensor JSON sync to Cloud every 5 seconds.
-// 4. Automated High-Resolution Plant Snapshot every 30 minutes to MongoDB Atlas.
-// 5. On-Demand Instant "Capture Now" Trigger handling from Dashboard.
-// ============================================================================
 
 #include <WiFi.h>
 #include <HTTPClient.h>
@@ -21,7 +14,7 @@
 #define TX_PIN 17  // ESP32 TX -> Arduino A1 (RX)
 #define RX_PIN 18  // ESP32 RX -> Arduino A2 (TX)
 
-// ─── Standard ESP32-S3 CAM (OV2640) Pin Mapping ──────────────────────────────
+// ─── Camera Pinout Profile 1: Standard AI-Thinker / Generic ESP32-S3 CAM ────
 #define PWDN_GPIO_NUM     -1
 #define RESET_GPIO_NUM    -1
 #define XCLK_GPIO_NUM     10
@@ -40,7 +33,7 @@
 #define HREF_GPIO_NUM     12
 #define PCLK_GPIO_NUM     16
 
-// ─── WiFi & Cloud Settings ──────────────────────────────────────────────────
+// ─── WiFi & Cloud Endpoints ─────────────────────────────────────────────────
 const char* ssid          = "moto";
 const char* password      = "11223344";
 const char* serverDataUrl = "https://hydroponicdata.vercel.app/api/sensors/data";
@@ -67,8 +60,15 @@ unsigned long lastUartPush    = 0;
 unsigned long lastPhotoUpload = 0;
 const unsigned long PHOTO_INTERVAL_MS = 30UL * 60UL * 1000UL; // 30 Minutes
 
-// ─── Initialize OV2640 Camera ───────────────────────────────────────────────
+// ─── Initialize OV2640 Camera with Diagnostics ──────────────────────────────
 bool initCamera() {
+  Serial.println("\n[CAM] Checking PSRAM & Hardware...");
+  if (psramFound()) {
+    Serial.printf("[CAM] PSRAM Found: %d KB free\n", ESP.getFreePsram() / 1024);
+  } else {
+    Serial.println("[CAM] ⚠️ PSRAM not found (using internal DRAM for camera buffer)");
+  }
+
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer   = LEDC_TIMER_0;
@@ -91,83 +91,102 @@ bool initCamera() {
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
   
-  // High Quality SVGA (800x600) for sharp plant leaf inspection
   if (psramFound()) {
-    config.frame_size   = FRAMESIZE_SVGA; // 800x600
-    config.jpeg_quality = 12;             // 10-63 (lower is higher quality)
+    config.frame_size   = FRAMESIZE_SVGA; // 800x600 (High-Def Leaf Inspection)
+    config.jpeg_quality = 12;             // 10-63 (Lower means higher quality)
     config.fb_count     = 2;
     config.fb_location  = CAMERA_FB_IN_PSRAM;
+    config.grab_mode    = CAMERA_GRAB_LATEST;
   } else {
     config.frame_size   = FRAMESIZE_VGA;  // 640x480
-    config.jpeg_quality = 14;
+    config.jpeg_quality = 15;
     config.fb_count     = 1;
     config.fb_location  = CAMERA_FB_IN_DRAM;
+    config.grab_mode    = CAMERA_GRAB_WHEN_EMPTY;
   }
 
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
-    Serial.printf("❌ Camera Init Failed: 0x%x\n", err);
+    Serial.printf("❌ [CAM] Camera Init Failed with Error Code: 0x%x\n", err);
+    if (err == 0x105) Serial.println("   -> Tip: Check camera ribbon cable seating");
+    if (err == 0x103) Serial.println("   -> Tip: Pin conflict or PSRAM not enabled in Arduino Tools menu");
     return false;
   }
 
   sensor_t * s = esp_camera_sensor_get();
   if (s != NULL) {
-    s->set_brightness(s, 1);   // -2 to 2
-    s->set_contrast(s, 1);     // -2 to 2
-    s->set_saturation(s, 1);   // -2 to 2
+    s->set_brightness(s, 1);
+    s->set_contrast(s, 1);
+    s->set_saturation(s, 1);
   }
 
-  Serial.println("✅ OV2640 Camera Initialized Successfully!");
+  Serial.println("✅ [CAM] OV2640 Camera Initialized Successfully!");
   return true;
 }
 
-// ─── Capture & Upload Plant Snapshot to MongoDB ─────────────────────────────
+// ─── Capture & Upload Plant Snapshot to MongoDB Atlas ───────────────────────
 bool captureAndUploadPhoto(const char* triggerType) {
-  if (!cameraReady) return false;
-  if (WiFi.status() != WL_CONNECTED) return false;
-
-  Serial.printf("📸 Capturing Plant Photo (%s)...\n", triggerType);
-  
-  camera_fb_t * fb = esp_camera_fb_get();
-  if (!fb) {
-    Serial.println("❌ Camera capture failed");
+  if (!cameraReady) {
+    Serial.println("❌ [CAM] Cannot capture photo: Camera is not initialized on this board!");
+    return false;
+  }
+  if (WiFi.status() != WL_CONNECTED) {
+    Serial.println("❌ [CAM] Cannot upload photo: WiFi is offline");
     return false;
   }
 
-  // Convert binary JPEG buffer to Base64 String
+  Serial.printf("📸 [CAM] Capturing Photo (%s)...\n", triggerType);
+  
+  // Discard older buffer to ensure fresh photo
+  camera_fb_t * fb = esp_camera_fb_get();
+  if (fb) {
+    esp_camera_fb_return(fb);
+    delay(50);
+  }
+
+  fb = esp_camera_fb_get();
+  if (!fb) {
+    Serial.println("❌ [CAM] Frame buffer acquisition failed");
+    return false;
+  }
+
+  Serial.printf("📸 [CAM] Photo Captured: %d bytes (JPEG). Encoding Base64...\n", fb->len);
+
+  // Encode JPEG into Base64
   size_t output_len = 0;
   mbedtls_base64_encode(NULL, 0, &output_len, fb->buf, fb->len);
   
   unsigned char * b64_buffer = (unsigned char *)malloc(output_len + 1);
   if (!b64_buffer) {
-    Serial.println("❌ Memory allocation failed for Base64");
+    Serial.println("❌ [CAM] Out of memory allocating Base64 buffer");
     esp_camera_fb_return(fb);
     return false;
   }
 
   mbedtls_base64_encode(b64_buffer, output_len, &output_len, fb->buf, fb->len);
   b64_buffer[output_len] = '\0';
-  esp_camera_fb_return(fb); // Release frame buffer immediately
+  esp_camera_fb_return(fb);
 
-  // Construct JSON Payload
+  // Construct JSON Body
   String jsonBody = "{\"trigger\":\"" + String(triggerType) + "\",\"image\":\"data:image/jpeg;base64," + String((char*)b64_buffer) + "\"}";
   free(b64_buffer);
 
-  // Send POST Request to Vercel Serverless Upload API
+  Serial.println("📡 [CAM] Uploading to MongoDB Atlas via Vercel...");
+
   WiFiClientSecure client;
   client.setInsecure();
   HTTPClient http;
   http.begin(client, serverCamUrl);
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(15000);
+  http.setTimeout(20000);
 
   int httpCode = http.POST(jsonBody);
   if (httpCode == 200 || httpCode == 201) {
-    Serial.printf("✅ [CAM] Plant Photo uploaded to MongoDB Atlas! (HTTP %d)\n", httpCode);
+    Serial.printf("✅ [CAM] Plant Photo uploaded to MongoDB Atlas successfully! (HTTP %d)\n", httpCode);
     http.end();
     return true;
   } else {
-    Serial.printf("❌ [CAM] Photo Upload Failed: %d\n", httpCode);
+    Serial.printf("❌ [CAM] Upload Failed with HTTP Code: %d\n", httpCode);
     http.end();
     return false;
   }
@@ -179,23 +198,34 @@ void setup() {
   UnoSerial.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN);
   pinMode(TDS_PIN, INPUT_PULLDOWN);
 
-  // Initialize Camera
+  Serial.println("\n==========================================");
+  Serial.println("  NutriFlow ESP32-S3 CAM Node Booting...  ");
+  Serial.println("==========================================");
+
+  // 1. Initialize Camera
   cameraReady = initCamera();
 
-  // Connect to WiFi
+  // 2. Connect to WiFi
   Serial.printf("Connecting to WiFi '%s' ", ssid);
   WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
+  int wifiAttempts = 0;
+  while (WiFi.status() != WL_CONNECTED && wifiAttempts < 30) {
     delay(400);
     Serial.print(".");
+    wifiAttempts++;
   }
-  Serial.println("\n✅ WiFi Connected! IP: " + WiFi.localIP().toString());
 
-  // Take initial boot snapshot
-  if (cameraReady) {
-    delay(2000);
-    captureAndUploadPhoto("boot_init");
-    lastPhotoUpload = millis();
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅ WiFi Connected! IP: " + WiFi.localIP().toString());
+    
+    // Take initial boot snapshot
+    if (cameraReady) {
+      delay(1500);
+      captureAndUploadPhoto("boot_init");
+      lastPhotoUpload = millis();
+    }
+  } else {
+    Serial.println("\n❌ WiFi Connection Timeout. Will retry in loop.");
   }
 }
 
@@ -229,7 +259,7 @@ void loop() {
     }
   }
 
-  // 2. Read Local TDS Hardware (Accurate 10-sample Averaging)
+  // 2. Read Local TDS Hardware (10-sample Averaging on 3.3V)
   long rawSum = 0;
   for (int i = 0; i < 10; i++) {
     rawSum += analogRead(TDS_PIN);
