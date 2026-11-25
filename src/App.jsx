@@ -10,6 +10,7 @@ import ControlPanel       from './components/ControlPanel'
 import SystemLogs         from './components/SystemLogs'
 import ThresholdSettings  from './components/ThresholdSettings'
 import DownloadButton     from './components/DownloadButton'
+import AboutProjectAndTeam from './components/AboutProjectAndTeam'
 import { useSensorData }  from './hooks/useSensorData'
 import { useThresholds }  from './hooks/useThresholds'
 import { usePlantCamera } from './hooks/usePlantCamera'
@@ -54,8 +55,11 @@ function App() {
           toggleTheme={toggleTheme}
         />
 
+        {/* ─── Hero / Project Overview Landing ─── */}
+        <AboutProjectAndTeam />
+
         {/* Top Info Bar & Download Row */}
-        <div className="flex items-center justify-between flex-wrap gap-2 px-1">
+        <div id="sensor-grid" className="flex items-center justify-between flex-wrap gap-2 px-1 pt-4">
           <div className="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-zinc-500">
             <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
             <span className="font-semibold text-slate-700 dark:text-zinc-400">{history.length} readings</span>
@@ -74,7 +78,7 @@ function App() {
           onSensorSelect={setSelectedSensor}
         />
 
-        {/* Single Sensor Detail Chart (Tapped Sensor) */}
+        {/* Single Sensor Detail Chart (Tapped Sensor - Graph Active Below) */}
         {selectedSensor && (
           <SensorDetailChart
             sensorKey={selectedSensor}

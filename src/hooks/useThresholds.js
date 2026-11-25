@@ -1,11 +1,10 @@
 // src/hooks/useThresholds.js
 // ─────────────────────────────────────────────────────────────────────────────
-// Manages sensor alert thresholds.
+// Manages sensor alert thresholds and browser notifications.
 // Saved in localStorage so they persist across page reloads.
-// Also syncs to backend so ESP32 can poll them.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import axios from 'axios'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined ? import.meta.env.VITE_API_BASE_URL : ''
@@ -26,7 +25,6 @@ const loadSaved = () => {
     const raw = localStorage.getItem('nutriflow_thresholds')
     if (raw) {
       const parsed = JSON.parse(raw)
-      // Merge with defaults to handle new keys
       return {
         ...DEFAULT_THRESHOLDS,
         ...parsed,
@@ -39,13 +37,37 @@ const loadSaved = () => {
 export const useThresholds = () => {
   const [thresholds, setThresholds] = useState(loadSaved)
   const [saving, setSaving]         = useState(false)
-  const [saveStatus, setSaveStatus] = useState(null) // 'success' | 'error' | null
+  const [saveStatus, setSaveStatus] = useState(null)
+  const lastAlertTimes = useRef({})
 
-  // Derive alert status for a given sensor key + value
+  // Derive alert status for a given sensor key + value and fire browser notification if breached
   const getStatus = useCallback((key, value) => {
     const t = thresholds[key]
     if (!t || !t.enabled || value === undefined || value === null) return 'info'
-    if (value < t.min || value > t.max) return 'critical'
+
+    // Threshold breached
+    if (value < t.min || value > t.max) {
+      const now = Date.now()
+      const lastSent = lastAlertTimes.current[key] || 0
+      // 15 second throttle per sensor to avoid spamming notifications
+      if (now - lastSent > 15000) {
+        lastAlertTimes.current[key] = now
+        if ('Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification(`⚠️ NutriFlow Alert: ${t.label}`, {
+              body: `${t.label} is currently ${typeof value === 'number' ? value.toFixed(1) : value} ${t.unit} (Safe range: ${t.min} - ${t.max} ${t.unit})`,
+              icon: '/favicon.svg',
+              tag: `nutriflow-${key}`,
+              renotify: true
+            })
+          } catch (e) {
+            console.error('Notification error', e)
+          }
+        }
+      }
+      return 'critical'
+    }
+
     // Warning zone: within 10% of limit
     const range  = t.max - t.min
     const buffer = range * 0.1
@@ -67,16 +89,13 @@ export const useThresholds = () => {
     setSaving(true)
     setSaveStatus(null)
 
-    // Save to localStorage (instant, works offline)
     localStorage.setItem('nutriflow_thresholds', JSON.stringify(toSave))
     setThresholds(toSave)
 
-    // Try to sync to backend (ESP32 will poll this)
     try {
       await axios.post(`${BASE_URL}/api/sensors/thresholds`, { thresholds: toSave })
       setSaveStatus('success')
     } catch (_) {
-      // Backend unavailable — localStorage still saved
       setSaveStatus('offline')
     } finally {
       setSaving(false)

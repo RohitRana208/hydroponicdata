@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NutriFlow — Technical Documentation & Engineering Manual</title>
+  <style>
+    :root {
+      --primary: #059669;
+      --primary-dark: #047857;
+      --primary-light: #d1fae5;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --border: #e2e8f0;
+      --code-bg: #0f172a;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--slate-800);
+      background-color: var(--slate-50);
+      line-height: 1.65;
+      padding: 0;
+    }
+    .top-bar {
+      position: sticky;
+      top: 0;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .top-bar .title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--primary-dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-group {
+      display: flex;
+      gap: 12px;
+    }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease-in-out;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: 1px solid var(--primary-dark);
+    }
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    .btn-outline {
+      background: white;
+      color: var(--slate-700);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover {
+      background: var(--slate-100);
+    }
+    .container {
+      max-width: 960px;
+      margin: 40px auto;
+      background: white;
+      padding: 60px 80px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      border: 1px solid var(--border);
+    }
+    header {
+      border-bottom: 2px solid var(--primary-light);
+      padding-bottom: 30px;
+      margin-bottom: 40px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      background: var(--primary-light);
+      color: var(--primary-dark);
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 2.4rem;
+      color: var(--slate-900);
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-size: 1.15rem;
+      color: var(--slate-600);
+      font-weight: 400;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+      padding: 16px;
+      background: var(--slate-50);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+    }
+    .meta-item strong {
+      display: block;
+      color: var(--slate-900);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    h2 {
+      font-size: 1.5rem;
+      color: var(--slate-900);
+      margin-top: 48px;
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: -0.01em;
+    }
+    h3 {
+      font-size: 1.2rem;
+      color: var(--primary-dark);
+      margin-top: 24px;
+      margin-bottom: 12px;
+    }
+    p {
+      margin-bottom: 16px;
+      color: var(--slate-700);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 24px 0;
+      font-size: 0.9rem;
+    }
+    th, td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      background: var(--slate-50);
+      color: var(--slate-900);
+      font-weight: 600;
+    }
+    tr:hover td {
+      background: #fafafa;
+    }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.88em;
+      background: var(--slate-100);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--primary-dark);
+    }
+    pre {
+      background: var(--code-bg);
+      color: #e2e8f0;
+      padding: 18px 20px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.85rem;
+      line-height: 1.5;
+      margin: 20px 0;
+    }
+    .alert {
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin: 24px 0;
+      border-left: 4px solid var(--primary);
+      background: #ecfdf5;
+      color: #065f46;
+      font-size: 0.95rem;
+    }
+    .alert-warning {
+      border-left-color: #f59e0b;
+      background: #fffbeb;
+      color: #92400e;
+    }
+    @media print {
+      .top-bar { display: none; }
+      body { background: white; }
+      .container {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border: none;
+      }
+      h2 { page-break-before: auto; }
+      pre, table { page-break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar">
+    <div class="title">
+      🌿 NutriFlow Engineering Documentation
+    </div>
+    <div class="btn-group">
+      <button class="btn btn-outline" onclick="downloadMarkdown()">📥 Download .MD File</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <span class="badge">Official Technical Specification</span>
+      <h1>NutriFlow: IoT Hydroponics & Plant Vision System</h1>
+      <p class="subtitle">Complete Hardware Architecture, Cloud Infrastructure, and Engineering Manual</p>
+
+      <div class="meta-grid">
+        <div class="meta-item">
+          <strong>Production URL</strong>
+          <a href="https://hydroponicdata.vercel.app/" target="_blank" style="color: var(--primary); text-decoration: none;">hydroponicdata.vercel.app</a>
+        </div>
+        <div class="meta-item">
+          <strong>Cloud Infrastructure</strong>
+          Vercel Serverless + Node.js 20
+        </div>
+        <div class="meta-item">
+          <strong>Database Engine</strong>
+          MongoDB Atlas (Database: hydrocore)
+        </div>
+        <div class="meta-item">
+          <strong>Edge Architecture</strong>
+          Arduino Uno R3 + ESP32-S3-N16R8 CAM
+        </div>
+      </div>
+    </header>
+
+    <h2>1. Executive Summary</h2>
+    <p>
+      <strong>NutriFlow</strong> is an enterprise-grade Internet of Things (IoT) and Edge Computer Vision hydroponics monitoring platform. It provides continuous, real-time surveillance of vital biochemical, physical, and environmental parameters essential for soilless cultivation.
+    </p>
+    <p>
+      The system leverages a decoupled dual-microcontroller edge architecture comprising an <strong>Arduino Uno R3</strong> (dedicated to high-reliability analog/digital sensor polling and physical user interface interaction) and an <strong>ESP32-S3-N16R8 CAM</strong> (dedicated to high-bandwidth edge computer vision, data synchronization, and secure TLS cloud communications). Data is persisted in a distributed <strong>MongoDB Atlas</strong> cluster and displayed via a responsive, cloud-native web dashboard hosted on <strong>Vercel</strong>.
+    </p>
+
+    <h2>2. System Topology & Circuit Block Diagram</h2>
+    <pre>
++---------------------------------------------------------------------------------------------------------+
+|                                    HYDROPONIC SENSOR ARTIFACTS                                          |
+|                                                                                                         |
+|  [pH Probe]         [HC-SR04 Ultrasonic]     [DS18B20 Temp Probe]     [DHT11 Sensor]     [TDS Probe]   |
+|   (Analog)            (Echo / Trigger)         (OneWire Bus)          (Single Bus)         (Analog)     |
++-------+--------------------+-------------------------+----------------------+-----------------+---------+
+        |                    |                         |                      |                 |
+        | 5V Analog          | 5V Digital              | 5V OneWire           | 5V Digital      | 3.3V Analog
+        v                    v                         v                      v                 |
++-----------------------------------------------------------------------------------+           |
+|                           ARDUINO UNO R3 (SENSOR HUB & UI)                        |           |
+|                                                                                   |           |
+|  - Analog Front-End: A0 (pH)                                                      |           |
+|  - Digital Pins: D12/D13 (Water Level), D10 (Water Temp), D11 (Air Temp/Humidity) |           |
+|  - Human-Machine Interface: 16x2 LCD via I2C (0x27) on A4/A5                      |           |
+|  - Calibration Interface: 4x4 Matrix Keypad (Pins 2 to 9)                         |           |
+|  - Inter-IC Telemetry Engine: SoftwareSerial (RX: A1, TX: A2)                     |           |
++------------------------------------+----------------------------------------------+           |
+                                     |                                                          |
+                                     | UART Serial Data (9600 Baud, Delimited CSV)              |
+                                     | Protocol: "D:pH,WL,WT,RT,Hum,TDS,EC\n"                   |
+                                     v                                                          |
++-----------------------------------------------------------------------------------+           |
+|                       ESP32-S3-N16R8 CAM (GATEWAY & PLANT VISION)                 |           |
+|                                                                                   |<----------+
+|  - Dual-Core Xtensa LX7 @ 240 MHz, 16 MB Flash, 8 MB Octal PSRAM                  |
+|  - Analog Input: GPIO 2 / Pin G2 (ADC1_CH1, 12-Bit Resolution, 3.3V Native)       |
+|  - Hardware UART: RX0 (GPIO 44) & TX0 (GPIO 43)                                   |
+|  - Optical Sensor: OV2640 Image Sensor (800x600 SVGA, Base64 JPEG Engine)         |
+|  - Network Subsystem: 2.4 GHz 802.11 b/g/n Wi-Fi with TLS 1.3 Client              |
+|  - Ingestion Loop: Telemetry dispatch every 5 seconds; auto-capture every 30 mins |
++------------------------------------+----------------------------------------------+
+                                     |
+                                     | HTTPS REST (TLS 1.3, JSON Payloads)
+                                     v
++---------------------------------------------------------------------------------------------------------+
+|                                    VERCEL SERVERLESS CLOUD LAYER                                        |
+|                                                                                                         |
+|   POST /api/sensors/data       POST /api/camera/upload       GET /api/sensors/latest                    |
+|   GET  /api/sensors/history    POST /api/camera/trigger      GET /api/camera/history                    |
++------------------------------------+----------------------------------+---------------------------------+
+                                     |                                  ^
+                                     | Read / Write Transactions        | Query Data
+                                     v                                  |
++------------------------------------+----------------------------------+---------------------------------+
+|                                    MONGODB ATLAS CLUSTER (NO-SQL)                                       |
+|                                                                                                         |
+|   Database: hydrocore                                                                                   |
+|   - sensor_logs         (Real-time telemetry time-series)                                               |
+|   - camera_snapshots    (Base64-encoded JPEG image history)                                             |
+|   - thresholds          (Safe operational min/max parameters)                                          |
+|   - pending_commands    (Asynchronous capture triggers)                                                 |
++------------------------------------+--------------------------------------------------------------------+
+                                     |
+                                     | Real-time HTTP Polling (5-second intervals)
+                                     v
++---------------------------------------------------------------------------------------------------------+
+|                                     CLIENT DASHBOARD (REACT 18 SPA)                                     |
+|                                                                                                         |
+|   - 7 Metric Status Cards (Real-time telemetry with threshold indicators)                               |
+|   - Visual Plant Vision Center (Latest snapshot + 48-hour growth timelapse viewer)                      |
+|   - Dynamic Recharts Historical Analytics (1h, 2h, 5h, 10h, 20h, All-Time filters)                      |
+|   - Comprehensive Data Export to Excel (.xlsx) via SheetJS                                              |
++---------------------------------------------------------------------------------------------------------+
+    </pre>
+
+    <h2>3. Complete Hardware Pinout Matrix</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Component</th>
+          <th>Signal Line</th>
+          <th>Board Pin</th>
+          <th>Voltage Rail</th>
+          <th>Description & Technical Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>pH Sensor</strong></td>
+          <td>Analog Signal (Po)</td>
+          <td>Arduino Uno <code>A0</code></td>
+          <td>5.0 V</td>
+          <td>Analog voltage signal (2.50V corresponds to pH 7.00).</td>
+        </tr>
+        <tr>
+          <td><strong>Ultrasonic (HC-SR04)</strong></td>
+          <td>TRIG / ECHO</td>
+          <td>Arduino Uno <code>D12 / D13</code></td>
+          <td>5.0 V</td>
+          <td>Water level reservoir depth measurement (10 µs pulse).</td>
+        </tr>
+        <tr>
+          <td><strong>Water Temp (DS18B20)</strong></td>
+          <td>Data (DQ)</td>
+          <td>Arduino Uno <code>D10</code></td>
+          <td>5.0 V</td>
+          <td>1-Wire protocol with 4.7 kΩ pull-up resistor to 5V rail.</td>
+        </tr>
+        <tr>
+          <td><strong>Room Temp/Hum (DHT11)</strong></td>
+          <td>Data</td>
+          <td>Arduino Uno <code>D11</code></td>
+          <td>5.0 V</td>
+          <td>Single-bus digital sensor sampling room climate.</td>
+        </tr>
+        <tr>
+          <td><strong>16x2 Character LCD</strong></td>
+          <td>SDA / SCL</td>
+          <td>Arduino Uno <code>A4 / A5</code></td>
+          <td>5.0 V</td>
+          <td>I2C backpack interface configured at address <code>0x27</code>.</td>
+        </tr>
+        <tr>
+          <td><strong>4x4 Matrix Keypad</strong></td>
+          <td>Rows R1–R4</td>
+          <td>Arduino Uno <code>D9, D8, D7, D6</code></td>
+          <td>5.0 V</td>
+          <td>Scanned input lines with software pull-ups.</td>
+        </tr>
+        <tr>
+          <td><strong>4x4 Matrix Keypad</strong></td>
+          <td>Cols C1–C4</td>
+          <td>Arduino Uno <code>D5, D4, D3, D2</code></td>
+          <td>5.0 V</td>
+          <td>Active-low column drive lines.</td>
+        </tr>
+        <tr>
+          <td><strong>Inter-Board UART Link</strong></td>
+          <td>TX / RX</td>
+          <td>Arduino <code>A2 / A1</code> &harr; ESP32 <code>RX0 / TX0</code></td>
+          <td>3.3 V Logic</td>
+          <td>9600 Baud delimited ASCII stream (GPIO 44 & GPIO 43).</td>
+        </tr>
+        <tr>
+          <td><strong>Common Ground Link</strong></td>
+          <td>GND</td>
+          <td>Arduino <code>GND</code> &harr; ESP32 <code>GND</code></td>
+          <td>0 V</td>
+          <td><strong>Mandatory:</strong> Shared reference ground across boards.</td>
+        </tr>
+        <tr>
+          <td><strong>TDS / EC Sensor</strong></td>
+          <td>Analog Signal</td>
+          <td>ESP32-S3 <code>G2 (GPIO 2)</code></td>
+          <td>3.3 V Native</td>
+          <td><strong>ADC1_CH1</strong> high-precision 12-bit channel.</td>
+        </tr>
+        <tr>
+          <td><strong>TDS Power Rail</strong></td>
+          <td>VCC / GND</td>
+          <td>ESP32-S3 <code>3V3 / GND</code></td>
+          <td><strong>3.3 V Only</strong></td>
+          <td><strong>Caution:</strong> Do NOT connect to 5V (ESP32 ADC limit is 3.3V).</td>
+        </tr>
+        <tr>
+          <td><strong>OV2640 Plant Camera</strong></td>
+          <td>Camera Bus</td>
+          <td>ESP32-S3 Ribbon</td>
+          <td>3.3 V / 1.8 V</td>
+          <td>Internal parallel bus using board pins <code>G4-G18</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="alert alert-warning">
+      <strong>⚠️ Critical Hardware Design Notice:</strong><br>
+      Pins <code>G4</code> through <code>G18</code> on the ESP32-S3-N16R8 CAM board are dedicated exclusively to the internal high-speed parallel bus of the OV2640 camera. Pin <code>G42</code> is a digital JTAG/MTMS pin with NO analog-to-digital converter (ADC). Pin <code>G2</code> (GPIO 2, ADC1_CH1) is the official and verified safe analog input for the TDS sensor.
+    </div>
+
+    <h2>4. Software Stack & Framework Specifications</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>System Layer</th>
+          <th>Technology</th>
+          <th>Version</th>
+          <th>Role in Architecture</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Frontend SPA</strong></td>
+          <td>React.js</td>
+          <td><code>18.3.1</code></td>
+          <td>Reactive UI with modular component hierarchy.</td>
+        </tr>
+        <tr>
+          <td><strong>Build Tool</strong></td>
+          <td>Vite</td>
+          <td><code>5.4.8</code></td>
+          <td>ES-module bundler with fast hot-module replacement.</td>
+        </tr>
+        <tr>
+          <td><strong>Styling</strong></td>
+          <td>Tailwind CSS</td>
+          <td><code>3.4.13</code></td>
+          <td>Responsive utility styling with Dark/Light mode support.</td>
+        </tr>
+        <tr>
+          <td><strong>Analytics Visualizer</strong></td>
+          <td>Recharts</td>
+          <td><code>2.12.7</code></td>
+          <td>Responsive SVG trend graphs for all 7 metrics.</td>
+        </tr>
+        <tr>
+          <td><strong>Spreadsheet Generation</strong></td>
+          <td>SheetJS (xlsx)</td>
+          <td><code>0.18.5</code></td>
+          <td>Client-side binary compilation of Excel telemetry logs.</td>
+        </tr>
+        <tr>
+          <td><strong>Cloud Functions</strong></td>
+          <td>Node.js (Serverless)</td>
+          <td><code>20.x</code></td>
+          <td>Stateless Vercel API routes handling ingestion and queries.</td>
+        </tr>
+        <tr>
+          <td><strong>Database Engine</strong></td>
+          <td>MongoDB Atlas</td>
+          <td><code>7.0</code></td>
+          <td>Distributed NoSQL database cluster (<code>hydrocore</code>).</td>
+        </tr>
+        <tr>
+          <td><strong>Deployment Platform</strong></td>
+          <td>Vercel</td>
+          <td>Production</td>
+          <td>Edge CDN hosting, automated SSL, continuous integration.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>5. Cloud Database Collections & Data Models</h2>
+    <p>All records are stored within the MongoDB Atlas database named <code>hydrocore</code> across 4 distinct collections:</p>
+    <ul>
+      <li><code>sensor_logs</code>: Continuous telemetry logs sampled at 5-second intervals.</li>
+      <li><code>camera_snapshots</code>: Base64-encoded JPEG image snapshots capturing plant canopy growth.</li>
+      <li><code>thresholds</code>: Configurable safe operational envelopes with alert thresholds.</li>
+      <li><code>pending_commands</code>: Asynchronous queue for remote hardware action execution (e.g. on-demand camera capture).</li>
+    </ul>
+
+    <h2>6. Cloud REST API Specification</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Method</th>
+          <th>Endpoint</th>
+          <th>Payload / Query</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/sensors/data</code></td>
+          <td>JSON Telemetry Packet</td>
+          <td>Ingests telemetry from ESP32; returns capture trigger flags.</td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/sensors/latest</code></td>
+          <td>None</td>
+          <td>Returns most recent reading for live dashboard display.</td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/sensors/history</code></td>
+          <td><code>?range=1h|2h|5h|10h|20h|all</code></td>
+          <td>Returns chronological records filtered by time range.</td>
+        </tr>
+        <tr>
+          <td><code>GET/POST</code></td>
+          <td><code>/api/sensors/thresholds</code></td>
+          <td>Thresholds JSON Object</td>
+          <td>Reads or persists custom safety alert limits.</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/camera/upload</code></td>
+          <td>Base64 JPEG Payload</td>
+          <td>Persists plant photos directly into MongoDB Atlas.</td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/camera/latest</code></td>
+          <td>None</td>
+          <td>Fetches the newest available plant photo.</td>
+        </tr>
+        <tr>
+          <td><code>GET</code></td>
+          <td><code>/api/camera/history</code></td>
+          <td>None</td>
+          <td>Fetches snapshots captured over the last 48 hours for timelapse.</td>
+        </tr>
+        <tr>
+          <td><code>POST</code></td>
+          <td><code>/api/camera/trigger</code></td>
+          <td>None</td>
+          <td>Queues immediate capture request from dashboard button.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>7. Hardware Flashing & Deployment Instructions</h2>
+    <h3>7.1 Arduino Uno Master Node</h3>
+    <ol>
+      <li>Connect Arduino Uno to your PC via USB cable.</li>
+      <li>In Arduino IDE, select <strong>Tools &gt; Board &gt; Arduino Uno</strong>.</li>
+      <li>Select the corresponding USB Serial Port.</li>
+      <li>Open <code>firmware/arduino_uno_master.ino</code> and click <strong>Upload</strong>.</li>
+    </ol>
+
+    <h3>7.2 ESP32-S3-N16R8 CAM Gateway</h3>
+    <ol>
+      <li>Connect the USB Type-C cable to the <strong>TTL Port</strong> (CH340 chip) of the board.</li>
+      <li>In Arduino IDE, select <strong>Tools &gt; Board &gt; esp32 &gt; ESP32S3 Dev Module</strong>.</li>
+      <li>Apply the following exact board configurations:
+        <ul>
+          <li><strong>USB CDC On Boot:</strong> <code>Enabled</code></li>
+          <li><strong>CPU Frequency:</strong> <code>240MHz (WiFi)</code></li>
+          <li><strong>Flash Size:</strong> <code>16MB (128Mb)</code></li>
+          <li><strong>Partition Scheme:</strong> <code>Huge APP (3MB No OTA/1MB SPIFFS)</code></li>
+          <li><strong>PSRAM:</strong> <code>OPI PSRAM</code></li>
+        </ul>
+      </li>
+      <li>Open <code>firmware/esp32_s3_gateway.ino</code> and click <strong>Upload</strong>.</li>
+    </ol>
+
+  </div>
+
+  <script>
+    function downloadMarkdown() {
+      fetch('/NutriFlow_Technical_Documentation.md')
+        .then(response => {
+          if (!response.ok) {
+            window.location.href = '/NutriFlow_Technical_Documentation.md';
+            return;
+          }
+          return response.text();
+        })
+        .then(text => {
+          if (!text) return;
+          const blob = new Blob([text], { type: 'text/markdown' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'NutriFlow_Technical_Documentation.md';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        })
+        .catch(err => {
+          window.location.href = '/NutriFlow_Technical_Documentation.md';
+        });
+    }
+  </script>
+</body>
+</html>

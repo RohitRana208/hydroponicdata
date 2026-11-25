@@ -1,7 +1,35 @@
 // src/components/Header.jsx
-import { Wifi, WifiOff, Activity, RefreshCw, Sun, Moon } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Wifi, WifiOff, Activity, RefreshCw, Sun, Moon, Bell } from 'lucide-react'
 
 const Header = ({ isConnected, lastUpdated, theme, toggleTheme }) => {
+  const [permStatus, setPermStatus] = useState('default')
+
+  useEffect(() => {
+    if ('Notification' in window) {
+      setPermStatus(Notification.permission)
+    }
+  }, [])
+
+  const requestPermission = async () => {
+    if (!('Notification' in window)) {
+      alert('This browser does not support desktop notifications.')
+      return
+    }
+    try {
+      const perm = await Notification.requestPermission()
+      setPermStatus(perm)
+      if (perm === 'granted') {
+        new Notification('🌱 NutriFlow Notifications Enabled!', {
+          body: 'You will receive instant alerts whenever parameters fluctuate outside limits.',
+          icon: '/favicon.svg'
+        })
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   const formatTime = (date) => {
     try {
       const d = date instanceof Date ? date : new Date(date || Date.now())
@@ -48,7 +76,7 @@ const Header = ({ isConnected, lastUpdated, theme, toggleTheme }) => {
         </div>
       </div>
 
-      {/* Status indicators & Theme Switcher */}
+      {/* Status indicators, Notification Permission & Theme Switcher */}
       <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
         {/* System active */}
         <div className="status-badge bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 text-emerald-700 dark:text-emerald-400 shadow-sm">
@@ -72,11 +100,19 @@ const Header = ({ isConnected, lastUpdated, theme, toggleTheme }) => {
           {isConnected ? 'Connected' : 'Offline'}
         </div>
 
-        {/* Live feed */}
-        <div className="status-badge bg-slate-100 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700/40 text-slate-600 dark:text-zinc-400 shadow-sm hidden md:inline-flex">
-          <Activity className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-          Live Feed
-        </div>
+        {/* Browser Alert Permission Button */}
+        <button
+          onClick={requestPermission}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all shadow-sm ${
+            permStatus === 'granted'
+              ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30'
+              : 'bg-amber-500 text-white border-amber-600 hover:bg-amber-600'
+          }`}
+          title="Enable Browser Alerts for Sensor Fluctuations"
+        >
+          <Bell className="w-3.5 h-3.5" />
+          <span>{permStatus === 'granted' ? 'Alerts On' : 'Enable Alerts'}</span>
+        </button>
 
         {/* Last updated */}
         <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-zinc-400 bg-slate-100/90 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700/40 rounded-full px-3 py-1 shadow-sm font-medium">
@@ -105,6 +141,17 @@ const Header = ({ isConnected, lastUpdated, theme, toggleTheme }) => {
             </>
           )}
         </button>
+
+        {/* Documentation Link */}
+        <a
+          href="/NutriFlow_Technical_Documentation.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 shadow-sm bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 active:scale-95"
+          title="View Technical Documentation"
+        >
+          <span>📄 Docs</span>
+        </a>
       </div>
     </header>
   )
