@@ -11,6 +11,7 @@ import SystemLogs         from './components/SystemLogs'
 import ThresholdSettings  from './components/ThresholdSettings'
 import DownloadButton     from './components/DownloadButton'
 import AboutProjectAndTeam from './components/AboutProjectAndTeam'
+import AIChatBot          from './components/AIChatBot'
 import { useSensorData }  from './hooks/useSensorData'
 import { useThresholds }  from './hooks/useThresholds'
 import { usePlantCamera } from './hooks/usePlantCamera'
@@ -47,7 +48,7 @@ function App() {
     >
       <div className="max-w-screen-xl mx-auto space-y-6">
 
-        {/* Header with Theme Switcher */}
+        {/* Header with Theme Switcher & Notification Controls */}
         <Header
           isConnected={isConnected}
           lastUpdated={lastUpdated}
@@ -179,6 +180,10 @@ function App() {
         </footer>
 
       </div>
+
+      {/* ─── Floating NutriBot AI Agronomist Chat Widget ─── */}
+      <AIChatBot liveSensors={latest} />
+
     </div>
   )
 }
