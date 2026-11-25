@@ -22,7 +22,7 @@ export const filterByHours = (history, hours) => {
     if (filtered.length >= 2) return filtered
   }
 
-  // 2. For datasets with smaller time spans, slice proportionally so every button updates the graph:
+  // 2. For datasets with smaller time spans, slice proportionally:
   const ratios = { 1: 0.2, 2: 0.4, 5: 0.6, 10: 0.8, 20: 1.0, 48: 1.0 }
   const ratio = ratios[h] || Math.min(1, h / 20)
   const count = Math.max(2, Math.ceil(history.length * ratio))
@@ -37,29 +37,18 @@ export const generateIdealLettuceHistory = () => {
 
   for (let i = totalPoints; i >= 0; i--) {
     const t = new Date(now - i * 3600000)
-    
-    // Day/Night cyclical diurnal oscillation
     const hour = t.getHours()
     const isDay = hour >= 6 && hour <= 21
 
-    // Ideal Hydroponic Lettuce targets with subtle realistic drift
     const ph = 5.95 + Math.sin(i * 0.4) * 0.18 + (Math.random() - 0.5) * 0.06
     const ec = 1.32 + Math.cos(i * 0.35) * 0.08 + (Math.random() - 0.5) * 0.04
-    const tds = Math.round(ec * 500 + (Math.random() - 0.5) * 15) // ~ 650 PPM
-    
-    // Water Temp: cooler (19.5 - 21.2°C)
+    const tds = Math.round(ec * 500 + (Math.random() - 0.5) * 15)
     const waterTemp = 20.2 + (isDay ? 0.7 : -0.6) + (Math.random() - 0.5) * 0.3
-    
-    // Air Temp: 22 - 24.5°C day, 18 - 19.5°C night
     const airTemp = isDay 
       ? 23.4 + Math.sin(i * 0.5) * 1.1 + (Math.random() - 0.5) * 0.4
       : 18.8 + Math.cos(i * 0.5) * 0.8 + (Math.random() - 0.5) * 0.4
-
-    // Humidity: 58 - 68%
     const humidity = Math.round(63 + (isDay ? -4 : 5) + Math.sin(i * 0.3) * 3 + (Math.random() - 0.5) * 2)
-
-    // Water level: gently dropping as mature lettuce transpires
-    const waterLevel = parseFloat((19.2 - (totalPoints - i) * 0.03 + (Math.random() - 0.5) * 0.1).toFixed(1))
+    const waterLevel = parseFloat((18.8 - (totalPoints - i) * 0.02 + (Math.random() - 0.5) * 0.1).toFixed(1))
 
     points.push({
       time: t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -100,29 +89,24 @@ export const toChartEntry = (doc) => {
   }
 }
 
-// ── Threshold alerts ──────────────────────────────────────────────────────────
-const checkThresholds = (data, addLog) => {
-  if (data.ph != null && (data.ph < 5.5 || data.ph > 6.5))
-    addLog('warn', `pH out of ideal lettuce range: ${data.ph.toFixed(2)} (Target 5.8 - 6.2)`)
-  if (data.tds != null && data.tds > 800)
-    addLog('warn', `TDS elevated: ${data.tds} PPM — check nutrient concentration`)
-  if (data.waterLevel != null && data.waterLevel < 8)
-    addLog('error', `Low water reservoir: ${data.waterLevel.toFixed(1)} cm — refill tank`)
-  if (data.waterTemp != null && data.waterTemp > 24)
-    addLog('warn', `Water temp elevated: ${data.waterTemp.toFixed(1)}°C (Lettuce ideal < 22°C)`)
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 export const useSensorData = () => {
-  // Initialize with scientifically ideal lettuce cultivation telemetry
-  const initialData = generateIdealLettuceHistory()
-  const [history,          setHistory]          = useState(initialData)
-  const [isConnected,      setIsConnected]      = useState(true)
-  const [lastReadingTime,  setLastReadingTime]  = useState(new Date())
-  const [lastUpdated,      setLastUpdated]      = useState(new Date())
-  const [isLoading,        setIsLoading]        = useState(false)
-  const [logs,             setLogs]             = useState([
-    { id: 1, time: new Date(), level: 'info', message: 'NutriFlow Intelligence: Ideal Lettuce Cultivation Telemetry Loaded (pH 5.95, EC 1.32 mS/cm, Water Temp 20.2°C).' },
+  // Mode selection: 'simulation' (realistic lettuce telemetry) vs 'hardware' (live ESP32 / DB only)
+  const [dataSourceMode, setDataSourceMode] = useState(() => {
+    return localStorage.getItem('nutriflow_data_mode') || 'simulation'
+  })
+
+  const [realHistory, setRealHistory] = useState([])
+  const [realLatest, setRealLatest]   = useState(null)
+  const [realConnected, setRealConnected] = useState(false)
+
+  const [simHistory, setSimHistory]   = useState(generateIdealLettuceHistory)
+
+  const [lastReadingTime, setLastReadingTime] = useState(new Date())
+  const [lastUpdated, setLastUpdated]         = useState(new Date())
+  const [isLoading, setIsLoading]             = useState(false)
+  const [logs, setLogs]                       = useState([
+    { id: 1, time: new Date(), level: 'info', message: 'NutriFlow Core initialized.' },
   ])
   const logIdRef  = useRef(2)
   const prevIdRef = useRef(null)
@@ -134,7 +118,19 @@ export const useSensorData = () => {
     ])
   }, [])
 
-  // ── Load server history on mount if available, else keep ideal lettuce dataset ──
+  // Toggle function saved to localStorage
+  const toggleDataMode = (mode) => {
+    const targetMode = mode || (dataSourceMode === 'simulation' ? 'hardware' : 'simulation')
+    setDataSourceMode(targetMode)
+    localStorage.setItem('nutriflow_data_mode', targetMode)
+    if (targetMode === 'hardware') {
+      addLog('info', 'Switched to [Real Hardware Live Mode]. Listening directly to ESP32 / MongoDB.')
+    } else {
+      addLog('info', 'Switched to [Ideal Simulation Mode]. Calibrated realistic lettuce telemetry active.')
+    }
+  }
+
+  // 1. Fetch Real History from MongoDB on mount
   useEffect(() => {
     let cancelled = false
     axios.get(`${BASE}/api/sensors/history?limit=50000`, { timeout: 8000 })
@@ -143,60 +139,61 @@ export const useSensorData = () => {
         const docs = Array.isArray(res.data) ? res.data : []
         if (docs.length > 0) {
           const entries = docs.map(toChartEntry)
-          setHistory(entries)
+          setRealHistory(entries)
           const lastDoc = docs[docs.length - 1]
           prevIdRef.current = String(lastDoc._id || '')
+          setRealLatest(toChartEntry(lastDoc))
 
           const docTime = new Date(lastDoc.createdAt || lastDoc.timestamp || Date.now()).getTime()
           setLastReadingTime(new Date(docTime))
-          const isLive = Date.now() - docTime < 25000
-          setIsConnected(isLive)
-
-          addLog('info', `✅ Synced ${docs.length} readings from database. Hardware ${isLive ? 'Online' : 'Standby'}.`)
+          const isLive = Date.now() - docTime < 30000
+          setRealConnected(isLive)
         } else {
-          setIsConnected(true)
-          addLog('info', 'NutriFlow Edge: Active simulated live stream calibrated for optimal lettuce growth.')
+          setRealConnected(false)
         }
       })
       .catch(() => {
         if (cancelled) return
-        setIsConnected(true)
+        setRealConnected(false)
       })
     return () => { cancelled = true }
-  }, [addLog])
+  }, [])
 
-  // ── Real-time continuous sensor drift simulating live healthy lettuce respiration ──
+  // 2. Poll Real ESP32 / Server data
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const res = await axios.get(`${BASE}/api/sensors/latest`, { timeout: 3000 })
+        const res = await axios.get(`${BASE}/api/sensors/latest`, { timeout: 3500 })
         const data = res.data
         if (data && typeof data === 'object' && Object.keys(data).length > 2) {
           const docTime = new Date(data.createdAt || data.timestamp || Date.now()).getTime()
-          const isLive = Date.now() - docTime < 25000
-          setIsConnected(isLive)
+          const isLive = Date.now() - docTime < 30000
+          setRealConnected(isLive)
           setLastReadingTime(new Date(docTime))
-          setLastUpdated(new Date())
+
+          const entry = toChartEntry(data)
+          setRealLatest(entry)
 
           const id = String(data._id || '')
           if (id && id !== prevIdRef.current) {
             prevIdRef.current = id
-            const entry = toChartEntry(data)
-            setHistory(prev => [...prev.slice(-150), entry])
-            checkThresholds(data, addLog)
+            setRealHistory(prev => [...prev.slice(-150), entry])
           }
-          return
+        } else {
+          setRealConnected(false)
         }
       } catch {
-        // Backend offline: run continuous realistic micro-drift around ideal lettuce values
+        setRealConnected(false)
       }
 
-      setHistory(prev => {
+      setLastUpdated(new Date())
+
+      // 3. Continuous realistic drift if in simulation mode
+      setSimHistory(prev => {
         const last = prev[prev.length - 1]
         if (!last) return prev
 
         const now = Date.now()
-        // Micro fluctuation around optimal lettuce biology
         const dPh = (Math.random() - 0.5) * 0.03
         const dEc = (Math.random() - 0.5) * 0.02
         const dWaterTemp = (Math.random() - 0.5) * 0.05
@@ -227,16 +224,19 @@ export const useSensorData = () => {
 
         return [...prev.slice(-150), newPoint]
       })
-
-      setLastUpdated(new Date())
-      setIsConnected(true)
     }, POLL_MS)
 
     return () => clearInterval(interval)
-  }, [addLog])
+  }, [])
 
-  const latest   = history.length > 0 ? history[history.length - 1] : null
+  // Output depends on active Mode
+  const isSimulation = dataSourceMode === 'simulation'
+  const history = isSimulation ? simHistory : realHistory
+  const latest  = isSimulation 
+    ? (simHistory.length > 0 ? simHistory[simHistory.length - 1] : null)
+    : (realLatest || (realHistory.length > 0 ? realHistory[realHistory.length - 1] : null))
   const previous = history.length > 1 ? history[history.length - 2] : null
+  const isConnected = isSimulation ? true : realConnected
 
   return {
     latest,
@@ -248,5 +248,7 @@ export const useSensorData = () => {
     isLoading,
     lastUpdated,
     addLog,
+    dataSourceMode,
+    toggleDataMode,
   }
 }
